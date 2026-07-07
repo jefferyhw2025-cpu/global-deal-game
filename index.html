@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Deal Tycoon</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-start" viewBox="0 0 24 24">
+        <path d="M4 19V5l9 4-9 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M13 9h6l-2.5 3L19 15h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24">
+        <path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="2" />
+      </symbol>
+      <symbol id="icon-spark" viewBox="0 0 24 24">
+        <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z" fill="currentColor" />
+      </symbol>
+      <symbol id="icon-coin" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M9 9.5c.6-.9 1.6-1.5 3-1.5 1.9 0 3 1 3 2.3 0 3-5.7 1.8-5.7 4.1 0 1.1 1.1 1.9 2.8 1.9 1.4 0 2.4-.4 3.1-1.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-train" viewBox="0 0 24 24">
+        <rect x="5" y="4" width="14" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M8 8h8M8 13h.1M16 13h.1M8 21l2-4M16 17l2 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-bolt" viewBox="0 0 24 24">
+        <path d="M13 2 5 13h6l-1 9 9-13h-6l0-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-tax" viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6z" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M9 8h6M9 12h6M9 16h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24">
+        <rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+        <rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor" />
+      </symbol>
+      <symbol id="icon-plane" viewBox="0 0 24 24">
+        <path d="M3 12h7l8-8 2 2-5 6 5 6-2 2-8-8H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-dice" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2" />
+        <circle cx="8" cy="8" r="1.4" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+        <circle cx="16" cy="16" r="1.4" fill="currentColor" />
+      </symbol>
+      <symbol id="icon-build" viewBox="0 0 24 24">
+        <path d="M4 20h16M7 20V8l5-4 5 4v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M10 20v-5h4v5M9 10h2M13 10h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24">
+        <path d="M20 7v5h-5M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M19 12A7 7 0 0 0 6.2 8.1M5 12a7 7 0 0 0 12.8 3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-trophy" viewBox="0 0 24 24">
+        <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 12v5M9 20h6M10 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-skip" viewBox="0 0 24 24">
+        <path d="M5 5v14l8-7-8-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M15 5v14M19 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-next" viewBox="0 0 24 24">
+        <path d="M5 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <path d="m13 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-map" viewBox="0 0 24 24">
+        <path d="m4 6 5-2 6 2 5-2v14l-5 2-6-2-5 2V6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M9 4v14M15 6v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-volume" viewBox="0 0 24 24">
+        <path d="M4 9v6h4l5 4V5L8 9H4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M16 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-muted" viewBox="0 0 24 24">
+        <path d="M4 9v6h4l5 4V5L8 9H4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="m17 9 4 4M21 9l-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-crown" viewBox="0 0 24 24">
+        <path d="m4 8 4 4 4-7 4 7 4-4-2 11H6L4 8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M7 21h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-news" viewBox="0 0 24 24">
+        <path d="M5 5h12v14H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="M17 8h2v9a2 2 0 0 1-2 2M8 9h6M8 13h6M8 17h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24">
+        <path d="M4 19h16M7 16l3-4 3 2 4-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7 16v3M10 12v7M13 14v5M17 7v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-card" viewBox="0 0 24 24">
+        <rect x="6" y="3" width="12" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M9 7h6M9 17h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        <path d="M12 10l1 2 2 .3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1L9 12.3l2-.3 1-2Z" fill="currentColor" />
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24">
+        <path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-gavel" viewBox="0 0 24 24">
+        <path d="m13 5 6 6M9 9l6 6M8 10l4-4 6 6-4 4-6-6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        <path d="m4 20 6-6M3 21h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+    </svg>
+
+    <main class="app-shell">
+      <section class="board-wrap" aria-label="World Deal Tycoon board">
+        <div id="board" class="board">
+          <section class="center-console" aria-label="游戏控制台">
+            <div class="brand-row">
+              <div>
+                <p id="brandEyebrow" class="eyebrow">World Deal</p>
+                <h1 id="brandTitle">全球交易大亨</h1>
+              </div>
+              <span id="roundCounter" class="round-pill">第 1 轮</span>
+            </div>
+
+            <div id="cityTicker" class="city-ticker" aria-live="polite"></div>
+
+            <div id="worldMap" class="world-map" aria-label="世界地图"></div>
+
+            <div id="currentTileCard" class="current-tile" aria-live="polite"></div>
+
+            <div class="dice-zone" aria-live="polite">
+              <div class="die" id="dieOne">1</div>
+              <div class="die" id="dieTwo">1</div>
+              <div class="dice-total" id="diceTotal">等待掷骰</div>
+            </div>
+
+            <p id="statusLine" class="status-line">轮到 Player，准备掷骰。</p>
+
+            <div class="action-bar" aria-label="分类操作抽屉">
+              <details class="main-action-drawer" data-drawer-id="main:turn" data-drawer-default="open" open>
+                <summary>
+                  <span>回合行动</span>
+                  <small>掷骰 / 合同 / 结束</small>
+                </summary>
+                <div class="action-drawer-buttons">
+                  <button id="rollButton" class="primary-action" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-dice"></use></svg>
+                    掷骰
+                  </button>
+                  <button id="contractButton" class="contract-shortcut-button" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
+                    签合同
+                  </button>
+                  <button id="endButton" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-next"></use></svg>
+                    结束
+                  </button>
+                </div>
+              </details>
+
+              <details class="main-action-drawer" data-drawer-id="main:deal">
+                <summary>
+                  <span>买地决策</span>
+                  <small>购买 / 拍卖</small>
+                </summary>
+                <div class="action-drawer-buttons">
+                  <button id="buyButton" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-coin"></use></svg>
+                    购买
+                  </button>
+                  <button id="declineButton" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-skip"></use></svg>
+                    跳过
+                  </button>
+                </div>
+              </details>
+
+              <details class="main-action-drawer" data-drawer-id="main:tools">
+                <summary>
+                  <span>工具建设</span>
+                  <small>冒险 / 升级</small>
+                </summary>
+                <div class="action-drawer-buttons">
+                  <button id="ventureButton" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-spark"></use></svg>
+                    冒险
+                  </button>
+                  <button id="quickUpgradeButton" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-build"></use></svg>
+                    升级
+                  </button>
+                </div>
+              </details>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="游戏信息">
+        <header class="panel-header">
+          <div>
+            <p id="panelEyebrow" class="eyebrow">控制台</p>
+            <h2 id="panelTitle">玩家状态</h2>
+          </div>
+          <div class="panel-actions">
+            <label class="language-control" for="languageSelect">
+              <span id="languageSelectLabel">语言</span>
+              <select id="languageSelect" class="language-select" aria-label="Language">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </label>
+            <button id="musicButton" class="music-button" type="button" aria-label="开启背景音乐" aria-pressed="false" title="背景音乐">
+              <svg aria-hidden="true"><use id="musicIcon" href="#icon-muted"></use></svg>
+              <span id="musicButtonText">音乐</span>
+            </button>
+            <button id="newGameButton" class="icon-button" type="button" aria-label="新游戏" title="新游戏">
+              <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+            </button>
+          </div>
+        </header>
+
+        <section id="playersPanel" class="players-panel" aria-label="玩家列表"></section>
+        <section id="tutorialPanel" class="tutorial-panel" aria-label="新手教程" aria-live="polite" hidden></section>
+        <nav id="panelTabs" class="panel-tabs" aria-label="信息分类抽屉"></nav>
+        <section id="tradePanel" class="trade-panel" aria-label="商业交易台"></section>
+        <section id="coopPanel" class="coop-panel" aria-label="公司合作合同"></section>
+        <section id="cardsPanel" class="cards-panel" aria-label="卡片列表"></section>
+        <section id="auctionPanel" class="auction-panel" aria-label="拍卖系统"></section>
+        <section id="shopPanel" class="shop-panel" aria-label="卡片商店"></section>
+        <section id="savePanel" class="save-panel" aria-label="存档槽位"></section>
+        <section id="progressPanel" class="progress-panel" aria-label="任务成就"></section>
+        <section id="worldPanel" class="world-panel" aria-label="世界系统"></section>
+        <section id="sharePanel" class="share-panel" aria-label="联机分享"></section>
+        <section id="assetsPanel" class="assets-panel" aria-label="资产与升级"></section>
+        <section class="log-panel" aria-label="事件记录">
+          <div class="section-title">事件记录</div>
+          <ol id="eventLog" class="event-log"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="propertyDialog" class="property-dialog">
+      <form method="dialog" class="property-dialog-card">
+        <div id="propertyDialogBody"></div>
+        <div class="dialog-actions">
+          <button id="closePropertyDialogButton" type="button">关闭</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="encyclopediaDialog" class="encyclopedia-dialog">
+      <form method="dialog" class="encyclopedia-card">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">World Atlas</p>
+            <h2>城市图鉴</h2>
+          </div>
+          <button id="closeEncyclopediaButton" class="icon-button" type="button" aria-label="关闭城市图鉴" title="关闭">
+            <svg aria-hidden="true"><use href="#icon-skip"></use></svg>
+          </button>
+        </div>
+        <div id="encyclopediaBody"></div>
+      </form>
+    </dialog>
+
+    <div id="effectsLayer" class="effects-layer" aria-hidden="true"></div>
+
+    <dialog id="winnerDialog" class="winner-dialog">
+      <form method="dialog" class="winner-card">
+        <div class="winner-hero">
+          <span class="winner-icon"><svg aria-hidden="true"><use href="#icon-trophy"></use></svg></span>
+          <div>
+            <p class="eyebrow">比赛结束</p>
+            <h2 id="winnerTitle">冠军诞生</h2>
+          </div>
+        </div>
+        <div id="winnerSummary" class="winner-summary"></div>
+        <div class="dialog-actions">
+          <button id="closeWinnerButton" type="button">查看棋盘</button>
+          <button id="winnerNewGameButton" class="primary-action" type="button">新游戏</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="tutorialDialog" class="tutorial-dialog">
+      <form method="dialog" class="tutorial-card">
+        <div class="tutorial-hero">
+          <span class="tutorial-icon"><svg aria-hidden="true"><use href="#icon-spark"></use></svg></span>
+          <div>
+            <p id="tutorialIntroEyebrow" class="eyebrow">新手教学</p>
+            <h2 id="tutorialIntroTitle">先玩一局教学局</h2>
+          </div>
+        </div>
+        <div id="tutorialIntroBody" class="tutorial-intro-body"></div>
+        <div class="dialog-actions">
+          <button id="continueWithoutTutorialButton" type="button">先自己玩</button>
+          <button id="startTutorialButton" class="primary-action" type="button">开始教学局</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="setupDialog" class="setup-dialog">
+      <form method="dialog" class="setup-form">
+        <div>
+          <p id="setupEyebrow" class="eyebrow">新游戏</p>
+          <h2 id="setupTitle">设置棋局</h2>
+        </div>
+
+        <label>
+          <span id="playerNameLabel">玩家名字</span>
+          <input id="playerNameInput" maxlength="14" value="Player" />
+        </label>
+
+        <label>
+          <span id="setupLanguageLabel">语言</span>
+          <select id="setupLanguageInput">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </label>
+
+        <label>
+          <span id="playerColorLabel">玩家颜色</span>
+          <input id="playerColorInput" type="color" value="#df624e" />
+        </label>
+
+        <label>
+          <span id="playerCountLabel">参赛人数</span>
+          <select id="playerCountInput">
+            <option value="2">2 人</option>
+            <option value="3">3 人</option>
+            <option value="4" selected>4 人</option>
+          </select>
+        </label>
+
+        <label>
+          <span id="difficultyLabel">AI 难度</span>
+          <select id="difficultyInput">
+            <option value="easy">轻松</option>
+            <option value="normal" selected>普通</option>
+            <option value="smart">精明</option>
+            <option value="expert">专家</option>
+            <option value="master">大师</option>
+          </select>
+          <small id="difficultyHint" class="setup-hint">当前：普通 / AI 智商 100 / 会正常买地、拍卖和升级。</small>
+        </label>
+
+        <label>
+          <span id="characterLabel">角色</span>
+          <select id="characterInput">
+            <option value="banker">银行家</option>
+            <option value="builder">建筑师</option>
+            <option value="broker">经纪人</option>
+            <option value="landlord">地主</option>
+          </select>
+        </label>
+
+        <label>
+          <span id="themeLabel">地图主题</span>
+          <select id="themeInput">
+            <option value="city" selected>现代城市</option>
+            <option value="island">海岛假日</option>
+            <option value="space">星际航线</option>
+            <option value="fairy">童话小镇</option>
+          </select>
+        </label>
+
+        <label>
+          <span id="rulesPresetLabel">规则模式</span>
+          <select id="rulesPresetInput">
+            <option value="classic" selected>经典规则</option>
+            <option value="fast">快速经营</option>
+            <option value="limited">20 回合限时</option>
+            <option value="daily">每日挑战</option>
+            <option value="hard">困难税费</option>
+          </select>
+        </label>
+
+        <label>
+          <span id="startCashLabel">起始现金</span>
+          <input id="startCashInput" type="number" min="800" max="3000" step="100" value="1600" />
+        </label>
+
+        <div class="dialog-actions">
+          <button id="cancelSetupButton" type="button">取消</button>
+          <button id="startGameButton" class="primary-action" type="button">开始</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
