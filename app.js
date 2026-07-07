@@ -2143,12 +2143,17 @@ const continueWithoutTutorialButton = document.getElementById("continueWithoutTu
 const propertyDialog = document.getElementById("propertyDialog");
 const propertyDialogBody = document.getElementById("propertyDialogBody");
 const closePropertyDialogButton = document.getElementById("closePropertyDialogButton");
+const contractDialog = document.getElementById("contractDialog");
+const contractDialogBody = document.getElementById("contractDialogBody");
+const cancelContractButton = document.getElementById("cancelContractButton");
+const confirmContractButton = document.getElementById("confirmContractButton");
 const encyclopediaDialog = document.getElementById("encyclopediaDialog");
 const encyclopediaBody = document.getElementById("encyclopediaBody");
 const closeEncyclopediaButton = document.getElementById("closeEncyclopediaButton");
 
 let state = loadGame() || createInitialGame();
 let automationTimer = 0;
+let pendingCoopContractIndex = null;
 const musicState = {
   context: null,
   master: null,
@@ -2201,6 +2206,9 @@ panelTabs?.addEventListener("click", handlePanelDrawerClick);
 closePropertyDialogButton.addEventListener("click", () => {
   propertyDialog.close();
 });
+cancelContractButton.addEventListener("click", closeContractDialog);
+confirmContractButton.addEventListener("click", confirmPendingCoopContract);
+contractDialogBody.addEventListener("change", handleContractDialogChange);
 closeEncyclopediaButton.addEventListener("click", () => {
   encyclopediaDialog.close();
 });
@@ -4113,6 +4121,7 @@ function renderCoopGuide(player) {
 
 function createCoopOfferCard(offer, player) {
   const { index, owner } = offer;
+  const financials = coopContractFinancials(index);
   const card = document.createElement("article");
   card.className = "deal-card deal-coop";
   const copy = document.createElement("div");
@@ -4123,7 +4132,7 @@ function createCoopOfferCard(offer, player) {
   const title = document.createElement("strong");
   title.textContent = `合作 ${spaceDisplayName(index)}`;
   const detail = document.createElement("small");
-  detail.textContent = `入场费 ${formatMoney(coopUpfront(index))}，你拿 ${Math.round(coopPartnerShare(index) * 100)}% 分红，违约金 ${formatMoney(coopPenalty(index))}，期限 ${COOP_CONTRACT_DURATION} 轮。`;
+  detail.textContent = `合同价值 ${formatMoney(financials.contractValue)} / 你付 ${formatMoney(financials.upfront)} / 预计收 ${formatMoney(financials.partnerExpected)} / 违约金 ${formatMoney(financials.penalty)}。`;
   copy.append(tag, title, detail);
 
   const button = document.createElement("button");
@@ -4135,6 +4144,38 @@ function createCoopOfferCard(offer, player) {
   if (button.disabled) button.title = coopDisabledReason(player, index);
   card.append(copy, button);
   return card;
+}
+
+function coopContractFinancials(index) {
+  const upfront = coopUpfront(index);
+  const penalty = coopPenalty(index);
+  const share = coopPartnerShare(index);
+  const dividend = coopDividend(index);
+  const partnerPerRound = Math.round(dividend * share);
+  const ownerPerRound = Math.max(0, dividend - partnerPerRound);
+  const partnerExpected = partnerPerRound * COOP_CONTRACT_DURATION;
+  const ownerExpected = ownerPerRound * COOP_CONTRACT_DURATION;
+  const totalDividend = dividend * COOP_CONTRACT_DURATION;
+  return {
+    upfront,
+    penalty,
+    share,
+    dividend,
+    partnerPerRound,
+    ownerPerRound,
+    partnerExpected,
+    ownerExpected,
+    totalDividend,
+    contractValue: upfront + totalDividend,
+  };
+}
+
+function sanitizeContractClause(value) {
+  const fallback = "抵押 / 转手 / 破产触发违约";
+  return String(value || fallback)
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 48) || fallback;
 }
 
 function createCoopContractStatusCard(contract, player) {
@@ -7312,6 +7353,143 @@ function signCoopContract(index) {
   const partner = currentPlayer();
   const owner = playerById(state.owners[index]);
   if (!canSignCoopContract(partner, index) || !owner) return;
+  openCoopContractDialog(index);
+}
+
+function openCoopContractDialog(index) {
+  const partner = currentPlayer();
+  const owner = playerById(state.owners[index]);
+  if (!canSignCoopContract(partner, index) || !owner || !contractDialog || !contractDialogBody) return;
+  pendingCoopContractIndex = index;
+  renderCoopContractDialog(index, partner, owner);
+  if (typeof contractDialog.showModal === "function") {
+    contractDialog.showModal();
+  } else {
+    contractDialog.setAttribute("open", "");
+  }
+}
+
+function closeContractDialog() {
+  pendingCoopContractIndex = null;
+  if (contractDialog?.open) {
+    contractDialog.close();
+  } else {
+    contractDialog?.removeAttribute("open");
+  }
+}
+
+function confirmPendingCoopContract() {
+  if (!Number.isInteger(pendingCoopContractIndex)) return;
+  const clause = sanitizeContractClause(document.getElementById("contractClauseInput")?.value);
+  const index = pendingCoopContractIndex;
+  pendingCoopContractIndex = null;
+  if (contractDialog?.open) contractDialog.close();
+  executeSignCoopContract(index, clause);
+}
+
+function handleContractDialogChange(event) {
+  if (event.target?.id !== "contractClausePreset") return;
+  const clauseInput = document.getElementById("contractClauseInput");
+  if (clauseInput) clauseInput.value = event.target.value;
+}
+
+function renderCoopContractDialog(index, partner, owner) {
+  const financials = coopContractFinancials(index);
+  const propertyName = spaceDisplayName(index);
+  contractDialogBody.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "contract-paper-header";
+  const eyebrow = document.createElement("span");
+  eyebrow.textContent = "合同预览";
+  const title = document.createElement("h2");
+  title.textContent = `${propertyName} 合作合同书`;
+  const badge = document.createElement("strong");
+  badge.textContent = `合同价值 ${formatMoney(financials.contractValue)}`;
+  header.append(eyebrow, title, badge);
+
+  const summary = document.createElement("p");
+  summary.className = "contract-summary-strip";
+  summary.textContent = `本合同由 ${partner.name} 向 ${owner.name} 支付 ${formatMoney(financials.upfront)}，获得 ${propertyName} 的合作分红权；${owner.name} 继续持有城市并保留剩余收益。`;
+
+  const parties = document.createElement("div");
+  parties.className = "contract-party-grid";
+  parties.append(
+    createContractInfoBlock("甲方 / 城市持有人", owner.name, "对方玩家，提供名下区域和经营分红"),
+    createContractInfoBlock("乙方 / 合作投资人", partner.name, "你的玩家，支付入场费并获得分红权"),
+  );
+
+  const moneyGrid = document.createElement("div");
+  moneyGrid.className = "contract-money-grid";
+  moneyGrid.append(
+    createContractMoneyItem("你给对方", formatMoney(financials.upfront), "签约时立即支付给城市持有人"),
+    createContractMoneyItem("对方当下收到", formatMoney(financials.upfront), `${owner.name} 立即入账`),
+    createContractMoneyItem("对方给你", `${formatMoney(financials.partnerPerRound)} / 轮`, `预计总分红 ${formatMoney(financials.partnerExpected)}`),
+    createContractMoneyItem("对方保留", `${formatMoney(financials.ownerPerRound)} / 轮`, `预计保留 ${formatMoney(financials.ownerExpected)}`),
+    createContractMoneyItem("违约金", formatMoney(financials.penalty), "触发违约条款时由违约方支付"),
+    createContractMoneyItem("合同期限", `${COOP_CONTRACT_DURATION} 轮`, `预计分红池 ${formatMoney(financials.totalDividend)}`),
+  );
+
+  const terms = document.createElement("div");
+  terms.className = "contract-terms-box";
+  const termsTitle = document.createElement("strong");
+  termsTitle.textContent = "违约条款 / 什么算违约";
+  const select = document.createElement("select");
+  select.id = "contractClausePreset";
+  [
+    "抵押 / 转手 / 破产触发违约",
+    "抵押城市或出售控制权视为违约",
+    "所有方破产或城市被收购视为违约",
+    "提前解约需支付 50% 违约金",
+  ].forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
+  const textarea = document.createElement("textarea");
+  textarea.id = "contractClauseInput";
+  textarea.maxLength = 48;
+  textarea.rows = 3;
+  textarea.value = select.value;
+  textarea.placeholder = "填写违约条款，例如：抵押、转手、破产、提前解约如何赔付。";
+  const note = document.createElement("p");
+  note.textContent = "确认后才会扣款并生成合同；合同会显示在“合同”抽屉里，可查看分红、剩余轮数和提前解约。";
+  terms.append(termsTitle, select, textarea, note);
+
+  contractDialogBody.append(header, summary, parties, moneyGrid, terms);
+}
+
+function createContractInfoBlock(label, name, detail) {
+  const block = document.createElement("article");
+  block.className = "contract-info-block";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const span = document.createElement("span");
+  span.textContent = detail;
+  block.append(small, strong, span);
+  return block;
+}
+
+function createContractMoneyItem(label, value, detail) {
+  const item = document.createElement("article");
+  item.className = "contract-money-item";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  const span = document.createElement("span");
+  span.textContent = detail;
+  item.append(small, strong, span);
+  return item;
+}
+
+function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发违约") {
+  const partner = currentPlayer();
+  const owner = playerById(state.owners[index]);
+  if (!canSignCoopContract(partner, index) || !owner) return;
 
   const upfront = coopUpfront(index);
   const penalty = coopPenalty(index);
@@ -7328,7 +7506,7 @@ function signCoopContract(index) {
     remainingRounds: COOP_CONTRACT_DURATION,
     signedRound: state.round,
     status: "active",
-    clause: "抵押 / 转手 / 破产触发违约",
+    clause: sanitizeContractClause(clause),
   };
   state.coopContracts = [contract, ...normalizeCoopContracts(state.coopContracts)].slice(0, COOP_CONTRACT_LIMIT);
   addCityRevenue(index, Math.round(upfront * 0.22));
@@ -8470,7 +8648,7 @@ function normalizeCoopContract(contract) {
     signedRound: Math.max(1, Number(contract.signedRound) || 1),
     endedRound: contract.endedRound ? Math.max(1, Number(contract.endedRound) || 1) : 0,
     status: ["active", "completed", "breached", "terminated"].includes(contract.status) ? contract.status : "active",
-    clause: String(contract.clause || "抵押 / 转手 / 破产触发违约").slice(0, 32),
+    clause: sanitizeContractClause(contract.clause),
     breachReason: String(contract.breachReason || "").slice(0, 28),
   };
 }
