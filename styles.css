@@ -1261,6 +1261,55 @@ h2 {
   line-height: 1.4;
 }
 
+.contract-draft-selector {
+  border: 1px solid rgba(34, 48, 66, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.contract-draft-selector label {
+  color: var(--charcoal);
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.contract-draft-selector select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.contract-draft-selector small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.contract-blocker-card {
+  border: 1px solid rgba(223, 98, 78, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 239, 235, 0.78);
+  color: #8b3526;
+  padding: 12px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
 .contract-party-grid,
 .contract-money-grid {
   display: grid;
@@ -2885,6 +2934,41 @@ h2 {
 .coop-contract-list {
   display: grid;
   gap: 8px;
+}
+
+.contract-draft-desk {
+  border: 1px solid rgba(15, 131, 151, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(232, 248, 250, 0.96), rgba(255, 255, 255, 0.88));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.contract-draft-desk strong {
+  color: var(--charcoal);
+  font-size: 0.88rem;
+  font-weight: 950;
+}
+
+.contract-draft-desk p {
+  grid-column: 1 / 2;
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.contract-draft-desk button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .active-coop-contract {
@@ -5743,6 +5827,20 @@ h2 {
     grid-template-columns: minmax(0, 1fr) 54px;
   }
 
+  .contract-draft-desk {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-draft-desk p,
+  .contract-draft-desk button {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .contract-draft-desk button {
+    width: 100%;
+  }
+
   .asset-item {
     grid-template-columns: 36px minmax(0, 1fr) 82px;
   }
@@ -5843,6 +5941,14 @@ h2 {
   .contract-party-grid,
   .contract-money-grid {
     grid-template-columns: 1fr;
+  }
+
+  .contract-draft-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .contract-draft-selector small {
+    grid-column: auto;
   }
 
   .contract-paper-header strong {

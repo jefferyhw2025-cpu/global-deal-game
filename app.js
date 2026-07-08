@@ -4008,8 +4008,8 @@ function renderContractHubCard(player) {
 
   const button = document.createElement("button");
   button.type = "button";
-  button.dataset.openContracts = "true";
-  button.textContent = summary.signable ? "去签合同" : "打开合同";
+  button.dataset.coopAction = "draft";
+  button.textContent = summary.signable ? "打开签署台" : "查看签署台";
   button.disabled = !player || state.gameOver;
   card.append(copy, button);
   return card;
@@ -4043,6 +4043,13 @@ function renderCoop() {
 
   const activeCount = coopContractsForPlayer(player).filter((contract) => contract.status === "active").length;
   const offerCount = coopContractCandidates(player).length;
+  coopPanel.appendChild(createUiDrawer("panel:coopDraft", "合同签署台", [
+    renderContractDraftDesk(player),
+  ], {
+    icon: "shield",
+    meta: offerCount ? `${offerCount} 个项目` : "起草",
+    open: true,
+  }));
   coopPanel.appendChild(createUiDrawer("panel:coopContracts", "合同列表", [
     renderCoopContractsPanel(player, { showTitle: false }),
   ], {
@@ -4093,6 +4100,26 @@ function renderCoopContractsPanel(player, options = {}) {
   return panel;
 }
 
+function renderContractDraftDesk(player) {
+  const desk = document.createElement("section");
+  desk.className = "contract-draft-desk";
+  const options = coopContractDraftOptions(player);
+  const signableCount = options.filter(({ index }) => canSignCoopContract(player, index)).length;
+  const title = document.createElement("strong");
+  title.textContent = signableCount ? "可以起草正式合作合同" : "先查看合同格式和条件";
+  const detail = document.createElement("p");
+  detail.textContent = options.length
+    ? "打开后可选对方玩家名下的城市，查看合同价值、双方给付、违约金，并填写违约条款。"
+    : "对手买下城市后，这里会出现可选择的合同项目。";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.coopAction = "draft";
+  button.textContent = "打开合同签署台";
+  button.disabled = !player || state.gameOver;
+  desk.append(title, detail, button);
+  return desk;
+}
+
 function renderCoopGuide(player) {
   const guide = document.createElement("div");
   guide.className = "coop-guide";
@@ -4139,7 +4166,7 @@ function createCoopOfferCard(offer, player) {
   button.type = "button";
   button.dataset.coopAction = "sign";
   button.dataset.coopIndex = String(index);
-  button.textContent = "签合同";
+  button.textContent = "预览合同";
   button.disabled = !canSignCoopContract(player, index);
   if (button.disabled) button.title = coopDisabledReason(player, index);
   card.append(copy, button);
@@ -4204,6 +4231,33 @@ function createCoopContractStatusCard(contract, player) {
   if (button.disabled) button.title = "只有合同双方可操作";
   card.append(copy, button);
   return card;
+}
+
+function contractSigningPlayer() {
+  const current = currentPlayer();
+  if (current && !current.isAI && !current.bankrupt) return current;
+  return humanPlayer() || current || null;
+}
+
+function coopContractDraftOptions(player) {
+  if (!player || player.isAI || player.bankrupt) return [];
+  return activePlayers()
+    .filter((owner) => owner.id !== player.id)
+    .flatMap((owner) => ownedPropertyIndexes(owner.id).map((index) => ({ owner, index })))
+    .filter(({ index }) => spaces[index]?.type === "property")
+    .filter(({ index }) => !hasActiveCoopContract(player.id, index))
+    .sort((a, b) => {
+      const signableDelta = Number(canSignCoopContract(player, b.index)) - Number(canSignCoopContract(player, a.index));
+      if (signableDelta) return signableDelta;
+      return coopScore(b.index) - coopScore(a.index);
+    });
+}
+
+function preferredCoopDraftIndex(player, preferredIndex = null) {
+  const options = coopContractDraftOptions(player);
+  if (Number.isInteger(preferredIndex) && options.some((option) => option.index === preferredIndex)) return preferredIndex;
+  const signable = options.find((option) => canSignCoopContract(player, option.index));
+  return (signable || options[0])?.index ?? null;
 }
 
 function createBusinessDealCard(deal) {
@@ -6309,6 +6363,7 @@ function handleTradeClick(event) {
 
   const coopButton = event.target.closest("button[data-coop-action]");
   if (coopButton) {
+    if (coopButton.dataset.coopAction === "draft") openCoopContractDraft();
     if (coopButton.dataset.coopAction === "sign") signCoopContract(Number(coopButton.dataset.coopIndex));
     if (coopButton.dataset.coopAction === "terminate") terminateCoopContract(coopButton.dataset.coopId);
     return;
@@ -7350,18 +7405,15 @@ function coopDisabledReason(player, index) {
 }
 
 function signCoopContract(index) {
-  const partner = currentPlayer();
-  const owner = playerById(state.owners[index]);
-  if (!canSignCoopContract(partner, index) || !owner) return;
-  openCoopContractDialog(index);
+  openCoopContractDraft(index);
 }
 
-function openCoopContractDialog(index) {
-  const partner = currentPlayer();
-  const owner = playerById(state.owners[index]);
-  if (!canSignCoopContract(partner, index) || !owner || !contractDialog || !contractDialogBody) return;
-  pendingCoopContractIndex = index;
-  renderCoopContractDialog(index, partner, owner);
+function openCoopContractDraft(preferredIndex = null) {
+  const partner = contractSigningPlayer();
+  const index = preferredCoopDraftIndex(partner, preferredIndex);
+  if (!contractDialog || !contractDialogBody) return;
+  pendingCoopContractIndex = Number.isInteger(index) ? index : null;
+  renderCoopContractDialog(index, partner);
   if (typeof contractDialog.showModal === "function") {
     contractDialog.showModal();
   } else {
@@ -7371,6 +7423,11 @@ function openCoopContractDialog(index) {
 
 function closeContractDialog() {
   pendingCoopContractIndex = null;
+  if (confirmContractButton) {
+    confirmContractButton.disabled = false;
+    confirmContractButton.title = "";
+    confirmContractButton.textContent = "签下合同";
+  }
   if (contractDialog?.open) {
     contractDialog.close();
   } else {
@@ -7380,33 +7437,60 @@ function closeContractDialog() {
 
 function confirmPendingCoopContract() {
   if (!Number.isInteger(pendingCoopContractIndex)) return;
+  const partner = contractSigningPlayer();
+  if (!canSignCoopContract(partner, pendingCoopContractIndex)) return;
   const clause = sanitizeContractClause(document.getElementById("contractClauseInput")?.value);
   const index = pendingCoopContractIndex;
   pendingCoopContractIndex = null;
   if (contractDialog?.open) contractDialog.close();
-  executeSignCoopContract(index, clause);
+  executeSignCoopContract(index, clause, partner?.id);
 }
 
 function handleContractDialogChange(event) {
-  if (event.target?.id !== "contractClausePreset") return;
-  const clauseInput = document.getElementById("contractClauseInput");
-  if (clauseInput) clauseInput.value = event.target.value;
+  if (event.target?.id === "contractClausePreset") {
+    const clauseInput = document.getElementById("contractClauseInput");
+    if (clauseInput) clauseInput.value = event.target.value;
+    return;
+  }
+  if (event.target?.id === "contractDraftIndex") {
+    const clause = document.getElementById("contractClauseInput")?.value || "";
+    const partner = contractSigningPlayer();
+    const index = event.target.value === "" ? null : Number(event.target.value);
+    pendingCoopContractIndex = Number.isInteger(index) ? index : null;
+    renderCoopContractDialog(index, partner, { clause });
+  }
 }
 
-function renderCoopContractDialog(index, partner, owner) {
-  const financials = coopContractFinancials(index);
-  const propertyName = spaceDisplayName(index);
+function renderCoopContractDialog(index, partner, options = {}) {
+  const owner = Number.isInteger(index) ? playerById(state.owners[index]) : null;
   contractDialogBody.innerHTML = "";
 
   const header = document.createElement("div");
   header.className = "contract-paper-header";
   const eyebrow = document.createElement("span");
-  eyebrow.textContent = "合同预览";
+  eyebrow.textContent = "合同签署台";
   const title = document.createElement("h2");
-  title.textContent = `${propertyName} 合作合同书`;
+  title.textContent = owner ? `${spaceDisplayName(index)} 合作合同书` : "公司合作合同起草";
   const badge = document.createElement("strong");
-  badge.textContent = `合同价值 ${formatMoney(financials.contractValue)}`;
+  badge.textContent = owner ? `合同价值 ${formatMoney(coopContractFinancials(index).contractValue)}` : "等待合同项目";
   header.append(eyebrow, title, badge);
+
+  const draftSelect = createContractDraftSelector(partner, index);
+
+  if (!owner || !partner) {
+    const empty = document.createElement("div");
+    empty.className = "contract-blocker-card";
+    empty.textContent = partner ? "对手还没有可合作的城市。等对手买下城市后，这里会出现可签合同。" : "当前没有可签约玩家。";
+    contractDialogBody.append(header, draftSelect, empty);
+    updateContractConfirmButton(false, "暂无可签合同");
+    return;
+  }
+
+  const financials = coopContractFinancials(index);
+  const propertyName = spaceDisplayName(index);
+  const canSign = canSignCoopContract(partner, index);
+  const disabledReason = canSign ? "" : coopDisabledReason(partner, index);
+  updateContractConfirmButton(canSign, disabledReason);
 
   const summary = document.createElement("p");
   summary.className = "contract-summary-strip";
@@ -7451,13 +7535,55 @@ function renderCoopContractDialog(index, partner, owner) {
   textarea.id = "contractClauseInput";
   textarea.maxLength = 48;
   textarea.rows = 3;
-  textarea.value = select.value;
+  textarea.value = sanitizeContractClause(options.clause || select.value);
   textarea.placeholder = "填写违约条款，例如：抵押、转手、破产、提前解约如何赔付。";
   const note = document.createElement("p");
-  note.textContent = "确认后才会扣款并生成合同；合同会显示在“合同”抽屉里，可查看分红、剩余轮数和提前解约。";
+  note.textContent = canSign
+    ? "确认后才会扣款并生成合同；合同会显示在“合同”抽屉里，可查看分红、剩余轮数和提前解约。"
+    : `现在不能签：${disabledReason}。你仍可先查看合同内容和条款。`;
   terms.append(termsTitle, select, textarea, note);
 
-  contractDialogBody.append(header, summary, parties, moneyGrid, terms);
+  contractDialogBody.append(header, draftSelect, summary, parties, moneyGrid, terms);
+}
+
+function createContractDraftSelector(player, selectedIndex) {
+  const selector = document.createElement("div");
+  selector.className = "contract-draft-selector";
+  const label = document.createElement("label");
+  label.setAttribute("for", "contractDraftIndex");
+  label.textContent = "选择合同项目";
+  const select = document.createElement("select");
+  select.id = "contractDraftIndex";
+  const options = coopContractDraftOptions(player);
+  if (!options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "暂无对手城市可合作";
+    select.appendChild(option);
+    select.disabled = true;
+  } else {
+    options.forEach(({ owner, index }) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      const reason = canSignCoopContract(player, index) ? "可签" : coopDisabledReason(player, index);
+      option.textContent = `${owner.name} / ${spaceDisplayName(index)} / ${reason}`;
+      select.appendChild(option);
+    });
+    select.value = Number.isInteger(selectedIndex) ? String(selectedIndex) : String(options[0].index);
+  }
+  const hint = document.createElement("small");
+  hint.textContent = options.length
+    ? "换一个项目会立刻刷新双方姓名、付款、分红和违约金。"
+    : "需要先让对手拥有城市，合同签署台才会出现项目。";
+  selector.append(label, select, hint);
+  return selector;
+}
+
+function updateContractConfirmButton(canSign, reason = "") {
+  if (!confirmContractButton) return;
+  confirmContractButton.disabled = !canSign;
+  confirmContractButton.title = canSign ? "确认签下合同" : reason;
+  confirmContractButton.textContent = canSign ? "签下合同" : "暂不能签";
 }
 
 function createContractInfoBlock(label, name, detail) {
@@ -7486,8 +7612,8 @@ function createContractMoneyItem(label, value, detail) {
   return item;
 }
 
-function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发违约") {
-  const partner = currentPlayer();
+function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发违约", partnerId = currentPlayer()?.id) {
+  const partner = playerById(partnerId) || currentPlayer();
   const owner = playerById(state.owners[index]);
   if (!canSignCoopContract(partner, index) || !owner) return;
 
