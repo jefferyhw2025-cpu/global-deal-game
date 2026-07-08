@@ -7481,7 +7481,7 @@ function renderCoopContractDialog(index, partner, options = {}) {
     const empty = document.createElement("div");
     empty.className = "contract-blocker-card";
     empty.textContent = partner ? "对手还没有可合作的城市。等对手买下城市后，这里会出现可签合同。" : "当前没有可签约玩家。";
-    contractDialogBody.append(header, draftSelect, empty);
+    contractDialogBody.append(header, draftSelect, empty, createBlankContractPreview(partner));
     updateContractConfirmButton(false, "暂无可签合同");
     return;
   }
@@ -7491,6 +7491,15 @@ function renderCoopContractDialog(index, partner, options = {}) {
   const canSign = canSignCoopContract(partner, index);
   const disabledReason = canSign ? "" : coopDisabledReason(partner, index);
   updateContractConfirmButton(canSign, disabledReason);
+
+  const meta = document.createElement("div");
+  meta.className = "contract-paper-meta";
+  meta.append(
+    createContractMetaPill("合同编号", `WD-${String(index).padStart(3, "0")}-${state.round}`),
+    createContractMetaPill("签署回合", `第 ${state.round} 轮`),
+    createContractMetaPill("合作分红", `${Math.round(financials.share * 100)}%`),
+    createContractMetaPill("城市评级", cityRating(index)),
+  );
 
   const summary = document.createElement("p");
   summary.className = "contract-summary-strip";
@@ -7543,7 +7552,67 @@ function renderCoopContractDialog(index, partner, options = {}) {
     : `现在不能签：${disabledReason}。你仍可先查看合同内容和条款。`;
   terms.append(termsTitle, select, textarea, note);
 
-  contractDialogBody.append(header, draftSelect, summary, parties, moneyGrid, terms);
+  const finePrint = createContractFinePrint(propertyName, financials);
+  const signatureBlock = createContractSignatureBlock(owner, partner, canSign);
+
+  contractDialogBody.append(header, draftSelect, meta, summary, parties, moneyGrid, terms, finePrint, signatureBlock);
+}
+
+function createContractMetaPill(label, value) {
+  const pill = document.createElement("span");
+  pill.className = "contract-meta-pill";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  pill.append(small, strong);
+  return pill;
+}
+
+function createBlankContractPreview(partner) {
+  const preview = document.createElement("section");
+  preview.className = "contract-blank-preview";
+
+  const meta = document.createElement("div");
+  meta.className = "contract-paper-meta";
+  meta.append(
+    createContractMetaPill("合同编号", "WD-待定"),
+    createContractMetaPill("签署回合", `第 ${state.round} 轮`),
+    createContractMetaPill("合作分红", "待计算"),
+    createContractMetaPill("城市评级", "待选择"),
+  );
+
+  const summary = document.createElement("p");
+  summary.className = "contract-summary-strip";
+  summary.textContent = "这是一张空白合同样本：选择对手名下城市后，会自动填入双方玩家、合同价值、给付金额、分红、违约金和签名栏。";
+
+  const parties = document.createElement("div");
+  parties.className = "contract-party-grid";
+  parties.append(
+    createContractInfoBlock("甲方 / 城市持有人", "对方玩家", "等待选择对手名下区域"),
+    createContractInfoBlock("乙方 / 合作投资人", partner?.name || "你的玩家", "等待支付入场费并获得分红权"),
+  );
+
+  const moneyGrid = document.createElement("div");
+  moneyGrid.className = "contract-money-grid";
+  moneyGrid.append(
+    createContractMoneyItem("你给对方", "待计算", "选择城市后显示签约入场费"),
+    createContractMoneyItem("对方当下收到", "待计算", "选择城市后显示对方入账"),
+    createContractMoneyItem("对方给你", "待计算", "选择城市后显示每轮分红"),
+    createContractMoneyItem("对方保留", "待计算", "选择城市后显示保留收益"),
+    createContractMoneyItem("违约金", "待计算", "选择城市后显示违约成本"),
+    createContractMoneyItem("合同期限", `${COOP_CONTRACT_DURATION} 轮`, "正式签约后开始倒计时"),
+  );
+
+  preview.append(
+    meta,
+    summary,
+    parties,
+    moneyGrid,
+    createContractFinePrint("所选城市", null),
+    createContractSignatureBlock({ name: "对方玩家" }, { name: partner?.name || "你的玩家" }, false),
+  );
+  return preview;
 }
 
 function createContractDraftSelector(player, selectedIndex) {
@@ -7584,6 +7653,55 @@ function updateContractConfirmButton(canSign, reason = "") {
   confirmContractButton.disabled = !canSign;
   confirmContractButton.title = canSign ? "确认签下合同" : reason;
   confirmContractButton.textContent = canSign ? "签下合同" : "暂不能签";
+}
+
+function createContractFinePrint(propertyName, financials) {
+  const finePrint = document.createElement("section");
+  finePrint.className = "contract-fine-print";
+  const title = document.createElement("strong");
+  title.textContent = "小字条款";
+  const list = document.createElement("ol");
+  const shareText = financials ? `${Math.round(financials.share * 100)}%` : "合同约定比例";
+  const penaltyText = financials ? formatMoney(financials.penalty) : "合同约定违约金";
+  [
+    `${propertyName} 每轮产生分红时，合作投资人先按 ${shareText} 取得收益。`,
+    `若城市被抵押、转手、收购，或任一方破产，系统会按违约条款结算，违约金为 ${penaltyText}。`,
+    "签约后不能用优惠券、口头承诺或临时反悔抵扣入场费。",
+    "本合同只影响游戏内现金流，不会改变城市所有权，除非之后触发并购或交易系统。",
+  ].forEach((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    list.appendChild(item);
+  });
+  finePrint.append(title, list);
+  return finePrint;
+}
+
+function createContractSignatureBlock(owner, partner, canSign) {
+  const block = document.createElement("section");
+  block.className = "contract-signature-block";
+  block.append(
+    createContractSignatureLine("甲方签名", owner.name),
+    createContractSignatureLine("乙方签名", partner.name),
+  );
+  const stamp = document.createElement("div");
+  stamp.className = canSign ? "contract-stamp is-ready" : "contract-stamp";
+  stamp.textContent = canSign ? "待签署" : "条件未满足";
+  block.appendChild(stamp);
+  return block;
+}
+
+function createContractSignatureLine(label, name) {
+  const line = document.createElement("article");
+  line.className = "contract-signature-line";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const rule = document.createElement("span");
+  rule.textContent = "签名线";
+  line.append(small, strong, rule);
+  return line;
 }
 
 function createContractInfoBlock(label, name, detail) {
