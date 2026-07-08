@@ -1337,6 +1337,93 @@ h2 {
   font-weight: 800;
 }
 
+.contract-negotiation-panel {
+  border: 1px solid rgba(15, 131, 151, 0.18);
+  border-radius: 8px;
+  background: rgba(232, 248, 250, 0.62);
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.contract-negotiation-panel label {
+  color: var(--charcoal);
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.contract-negotiation-panel select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.contract-negotiation-panel small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.contract-insight-panel {
+  border: 1px solid rgba(34, 48, 66, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+.contract-insight-panel.risk-safe {
+  border-color: rgba(45, 159, 111, 0.28);
+}
+
+.contract-insight-panel.risk-warn {
+  border-color: rgba(216, 153, 33, 0.34);
+}
+
+.contract-insight-panel.risk-danger {
+  border-color: rgba(223, 98, 78, 0.34);
+}
+
+.contract-insight-item {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.contract-insight-item small {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 950;
+}
+
+.contract-insight-item strong {
+  color: var(--charcoal);
+  font-size: 0.76rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.contract-insight-item span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .contract-blocker-card {
   border: 1px solid rgba(223, 98, 78, 0.22);
   border-radius: 8px;
@@ -1400,6 +1487,27 @@ h2 {
   font-size: 0.9rem;
   font-weight: 950;
   overflow-wrap: anywhere;
+}
+
+.contract-money-item input,
+.contract-signature-line input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid rgba(147, 112, 62, 0.32);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--charcoal);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 950;
+  padding: 4px 2px;
+  outline: none;
+}
+
+.contract-money-item input:focus,
+.contract-signature-line input:focus {
+  border-bottom-color: var(--accent-strong);
+  background: #fff;
 }
 
 .contract-info-block span,
@@ -3108,6 +3216,34 @@ h2 {
     linear-gradient(135deg, rgba(232, 248, 250, 0.95), rgba(255, 255, 255, 0.86));
 }
 
+.contract-status-completed {
+  background:
+    linear-gradient(135deg, rgba(232, 248, 250, 0.86), rgba(255, 255, 255, 0.9));
+}
+
+.contract-status-breached,
+.contract-status-terminated,
+.proposal-rejected {
+  background:
+    linear-gradient(135deg, rgba(255, 239, 235, 0.88), rgba(255, 255, 255, 0.9));
+}
+
+.proposal-actions {
+  min-width: 92px;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.proposal-actions button {
+  min-height: 50%;
+  border-width: 0 0 1px 1px;
+  border-radius: 0;
+}
+
+.proposal-actions button:last-child {
+  border-bottom-width: 0;
+}
+
 .contract-hub-card {
   border-color: rgba(15, 131, 151, 0.28);
   background:
@@ -4649,6 +4785,57 @@ h2 {
   padding: 3px 7px;
 }
 
+.contract-settlement-report {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  width: min(420px, calc(100vw - 36px));
+  border: 2px solid rgba(147, 112, 62, 0.28);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 251, 238, 0.98), rgba(255, 255, 249, 0.96));
+  color: var(--charcoal);
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  box-shadow: 0 24px 48px rgba(13, 23, 36, 0.24);
+  transform: translateX(-50%);
+  animation: contractSlide 3.1s ease forwards;
+  z-index: 20;
+}
+
+.contract-settlement-report strong {
+  color: var(--teal);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.contract-settlement-report span {
+  color: var(--charcoal);
+  font-size: 0.96rem;
+  font-weight: 950;
+}
+
+.contract-settlement-report p {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+.contract-settlement-report em {
+  width: fit-content;
+  border: 1px solid rgba(15, 131, 151, 0.22);
+  border-radius: 999px;
+  background: rgba(232, 248, 250, 0.9);
+  color: var(--teal);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 950;
+  padding: 3px 7px;
+}
+
 .card-reveal {
   --reveal-color: var(--gold);
   position: fixed;
@@ -6075,15 +6262,18 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .contract-draft-selector {
+  .contract-draft-selector,
+  .contract-negotiation-panel {
     grid-template-columns: 1fr;
   }
 
-  .contract-draft-selector small {
+  .contract-draft-selector small,
+  .contract-negotiation-panel small {
     grid-column: auto;
   }
 
   .contract-paper-meta,
+  .contract-insight-panel,
   .contract-signature-block {
     grid-template-columns: 1fr;
   }

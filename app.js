@@ -42,7 +42,9 @@ const DEAL_LEDGER_LIMIT = 8;
 const NEWS_FEED_LIMIT = 8;
 const QUARTERLY_REPORT_LIMIT = 6;
 const COOP_CONTRACT_LIMIT = 8;
+const COOP_CONTRACT_ARCHIVE_LIMIT = 18;
 const COOP_CONTRACT_DURATION = 4;
+const COOP_CONTRACT_MAX_DURATION = 12;
 const BUSINESS_DEAL_PHASES = ["waiting", "ending", "shop"];
 const COMPANY_TYPES = ["company", "hotel", "bank", "techPark"];
 const COMPANY_BUILD_COST = {
@@ -60,6 +62,8 @@ const DEFAULT_DRAWER_OPEN = {
   "panel:fieldTrade": false,
   "panel:dealLedger": false,
   "panel:coopContracts": true,
+  "panel:coopArchive": false,
+  "panel:coopProposals": true,
   "panel:coopGuide": false,
   "panel:cards": true,
   "panel:bank": false,
@@ -2589,6 +2593,7 @@ function createInitialGame(config = {}) {
     visitedRegions: [],
     ventureUsed: false,
     completedTasks: [],
+    contractReputation: 80,
     bankrupt: false,
   }));
 
@@ -2617,6 +2622,8 @@ function createInitialGame(config = {}) {
     cityFunding: Array(spaces.length).fill(0),
 	    dealLedger: [],
 	    coopContracts: [],
+	    coopProposals: [],
+	    lastCoopProposalRound: 0,
 	    bankLedger: [],
     ecoLevels: Array(spaces.length).fill(0),
     cityCompanies: Array.from({ length: spaces.length }, createCityCompanyState),
@@ -2701,6 +2708,7 @@ function loadGame() {
       player.visitedRegions = Array.isArray(player.visitedRegions) ? player.visitedRegions.filter(Boolean) : [];
       player.ventureUsed = Boolean(player.ventureUsed);
       player.completedTasks = Array.isArray(player.completedTasks) ? player.completedTasks : [];
+      player.contractReputation = clamp(Number(player.contractReputation) || 80, 0, 100);
       player.bankrupt = Boolean(player.bankrupt);
     });
     const savedTutorialMode = Boolean(saved.config?.tutorialMode);
@@ -2735,6 +2743,8 @@ function loadGame() {
 	          .slice(0, DEAL_LEDGER_LIMIT)
 	      : [];
 	    saved.coopContracts = normalizeCoopContracts(saved.coopContracts);
+	    saved.coopProposals = normalizeCoopProposals(saved.coopProposals);
+	    saved.lastCoopProposalRound = Math.max(0, Number(saved.lastCoopProposalRound) || 0);
 	    saved.bankLedger = Array.isArray(saved.bankLedger)
       ? saved.bankLedger
           .map(normalizeBankLedgerItem)
@@ -3972,12 +3982,15 @@ function renderDealDashboard(player) {
 }
 
 function contractHubSummary(player) {
-  if (!player) return { active: 0, offers: 0, signable: 0 };
+  if (!player) return { active: 0, offers: 0, signable: 0, pendingApprovals: 0, waitingApprovals: 0 };
   const offers = coopContractCandidates(player);
+  const proposals = coopProposalsForPlayer(player).filter((proposal) => proposal.status === "pending");
   return {
     active: coopContractsForPlayer(player).filter((contract) => contract.status === "active").length,
     offers: offers.length,
     signable: offers.filter((offer) => canSignCoopContract(player, offer.index)).length,
+    pendingApprovals: proposals.filter((proposal) => proposal.approverId === player.id).length,
+    waitingApprovals: proposals.filter((proposal) => proposal.proposerId === player.id).length,
   };
 }
 
@@ -3991,7 +4004,11 @@ function renderContractHubCard(player) {
   tag.className = "deal-tag";
   tag.textContent = "合同中心";
   const title = document.createElement("strong");
-  title.textContent = summary.signable
+  title.textContent = summary.pendingApprovals
+    ? `${summary.pendingApprovals} 个合同待你同意`
+    : summary.waitingApprovals
+      ? `${summary.waitingApprovals} 个合同等对方同意`
+      : summary.signable
     ? `${summary.signable} 个合同可签`
     : summary.active
       ? `${summary.active} 份合同分红中`
@@ -3999,17 +4016,21 @@ function renderContractHubCard(player) {
         ? `${summary.offers} 个合同项目`
         : "查看合同条件";
   const detail = document.createElement("small");
-  detail.textContent = summary.signable
-    ? "和对手名下城市签合作合同，付入场费后按轮分红。"
-    : summary.active
-      ? "查看分红、剩余轮数、提前解约和违约条款。"
-      : `${coopShortcutReason(player)}。`;
+  detail.textContent = summary.pendingApprovals
+    ? "对方发来的合同必须你同意后才会生效。"
+    : summary.waitingApprovals
+      ? "你提交的合同还没生效，必须等对方同意。"
+      : summary.signable
+        ? "先提交给对方确认；对方同意后才会扣款生效。"
+        : summary.active
+          ? "查看分红、剩余轮数、提前解约和违约条款。"
+          : `${coopShortcutReason(player)}。`;
   copy.append(tag, title, detail);
 
   const button = document.createElement("button");
   button.type = "button";
-  button.dataset.coopAction = "draft";
-  button.textContent = summary.signable ? "打开签署台" : "查看签署台";
+  button.dataset.coopAction = summary.pendingApprovals ? "viewProposals" : "draft";
+  button.textContent = summary.pendingApprovals ? "查看提案" : summary.signable ? "打开签署台" : "查看签署台";
   button.disabled = !player || state.gameOver;
   card.append(copy, button);
   return card;
@@ -4030,6 +4051,7 @@ function renderCoop() {
   const player = humanPlayer() || current;
   coopPanel.classList.toggle("is-hidden", !player || state.gameOver);
   if (!player || state.gameOver) return;
+  maybeCreateAiCoopProposal(player);
 
   const title = document.createElement("div");
   title.className = "section-title coop-section-title";
@@ -4043,6 +4065,8 @@ function renderCoop() {
 
   const activeCount = coopContractsForPlayer(player).filter((contract) => contract.status === "active").length;
   const offerCount = coopContractCandidates(player).length;
+  const archiveCount = archivedCoopContractsForPlayer(player).length;
+  const proposalCount = coopProposalsForPlayer(player).length;
   coopPanel.appendChild(createUiDrawer("panel:coopDraft", "合同签署台", [
     renderContractDraftDesk(player),
   ], {
@@ -4056,6 +4080,20 @@ function renderCoop() {
     icon: "shield",
     meta: activeCount ? `${activeCount} 份进行中` : offerCount ? `${offerCount} 个可签` : "暂无",
     open: true,
+  }));
+  coopPanel.appendChild(createUiDrawer("panel:coopProposals", "对手提案", [
+    renderCoopProposalPanel(player),
+  ], {
+    icon: "chart",
+    meta: proposalCount ? `${proposalCount} 个` : "暂无",
+    open: Boolean(proposalCount),
+  }));
+  coopPanel.appendChild(createUiDrawer("panel:coopArchive", "合同档案", [
+    renderCoopArchivePanel(player),
+  ], {
+    icon: "news",
+    meta: archiveCount ? `${archiveCount} 条` : "空",
+    open: Boolean(archiveCount),
   }));
   coopPanel.appendChild(createUiDrawer("panel:coopGuide", "怎么出现可签合同", [
     renderCoopGuide(player),
@@ -4100,6 +4138,36 @@ function renderCoopContractsPanel(player, options = {}) {
   return panel;
 }
 
+function renderCoopArchivePanel(player) {
+  const panel = document.createElement("section");
+  panel.className = "coop-contract-panel";
+  const archive = archivedCoopContractsForPlayer(player).slice(0, 6);
+  if (!archive.length) {
+    panel.appendChild(emptyNote("还没有完成、违约或解约的合同。"));
+    return panel;
+  }
+  const list = document.createElement("div");
+  list.className = "coop-contract-list";
+  archive.forEach((contract) => list.appendChild(createCoopContractStatusCard(contract, player)));
+  panel.appendChild(list);
+  return panel;
+}
+
+function renderCoopProposalPanel(player) {
+  const panel = document.createElement("section");
+  panel.className = "coop-contract-panel";
+  const proposals = coopProposalsForPlayer(player).slice(0, 5);
+  if (!proposals.length) {
+    panel.appendChild(emptyNote("暂时没有对手发来的合同提案。"));
+    return panel;
+  }
+  const list = document.createElement("div");
+  list.className = "coop-contract-list";
+  proposals.forEach((proposal) => list.appendChild(createCoopProposalCard(proposal, player)));
+  panel.appendChild(list);
+  return panel;
+}
+
 function renderContractDraftDesk(player) {
   const desk = document.createElement("section");
   desk.className = "contract-draft-desk";
@@ -4109,8 +4177,8 @@ function renderContractDraftDesk(player) {
   title.textContent = signableCount ? "可以起草正式合作合同" : "先查看合同格式和条件";
   const detail = document.createElement("p");
   detail.textContent = options.length
-    ? "打开后可选对方玩家名下的城市，查看合同价值、双方给付、违约金，并填写违约条款。"
-    : "对手买下城市后，这里会出现可选择的合同项目。";
+    ? `打开后可选对方玩家名下的城市，查看合同价值、双方给付、违约金，并填写违约条款。你的商业信誉 ${contractReputationFor(player)}。`
+    : `对手买下城市后，这里会出现可选择的合同项目。你的商业信誉 ${contractReputationFor(player)}。`;
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.coopAction = "draft";
@@ -4173,28 +4241,141 @@ function createCoopOfferCard(offer, player) {
   return card;
 }
 
-function coopContractFinancials(index) {
-  const upfront = coopUpfront(index);
-  const penalty = coopPenalty(index);
-  const share = coopPartnerShare(index);
+function coopContractFinancials(index, negotiation = "standard") {
+  const mode = typeof negotiation === "object" ? negotiation.mode || "standard" : negotiation;
+  const baseUpfront = coopUpfront(index);
+  const basePenalty = coopPenalty(index);
+  const baseShare = coopPartnerShare(index);
+  const modifiers = {
+    standard: { upfront: 1, penalty: 1, share: 0, label: "标准合同" },
+    premiumShare: { upfront: 1.22, penalty: 1.08, share: 0.06, label: "加价换高分红" },
+    safePenalty: { upfront: 1.1, penalty: 0.72, share: -0.02, label: "低违约金稳健版" },
+    aggressiveShare: { upfront: 1.34, penalty: 1.22, share: 0.09, label: "强势分红版" },
+    lowEntry: { upfront: 0.84, penalty: 1.14, share: -0.04, label: "低入场费试水版" },
+  }[mode] || { upfront: 1, penalty: 1, share: 0, label: "标准合同" };
+  const upfront = Math.round((baseUpfront * modifiers.upfront) / 10) * 10;
+  const penalty = Math.round((basePenalty * modifiers.penalty) / 10) * 10;
+  const share = clamp(baseShare + modifiers.share, 0.24, 0.55);
   const dividend = coopDividend(index);
   const partnerPerRound = Math.round(dividend * share);
   const ownerPerRound = Math.max(0, dividend - partnerPerRound);
-  const partnerExpected = partnerPerRound * COOP_CONTRACT_DURATION;
-  const ownerExpected = ownerPerRound * COOP_CONTRACT_DURATION;
-  const totalDividend = dividend * COOP_CONTRACT_DURATION;
+  const duration = COOP_CONTRACT_DURATION;
+  const partnerExpected = partnerPerRound * duration;
+  const ownerExpected = ownerPerRound * duration;
+  const totalDividend = dividend * duration;
   return {
     upfront,
+    ownerReceipt: upfront,
     penalty,
     share,
     dividend,
+    duration,
     partnerPerRound,
     ownerPerRound,
     partnerExpected,
     ownerExpected,
     totalDividend,
     contractValue: upfront + totalDividend,
+    mode,
+    modeLabel: modifiers.label,
   };
+}
+
+function sanitizeContractAmount(value, fallback = 0, min = 0, max = 99999) {
+  const number = Number(value);
+  const safeFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : 0;
+  return clamp(Math.round(Number.isFinite(number) ? number : safeFallback), min, max);
+}
+
+function sanitizeContractDuration(value, fallback = COOP_CONTRACT_DURATION) {
+  return sanitizeContractAmount(value, fallback, 1, COOP_CONTRACT_MAX_DURATION);
+}
+
+function sanitizeContractSignature(value, fallback = "玩家") {
+  return String(value || fallback)
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 24) || fallback;
+}
+
+function coopContractFinancialsWithTerms(index, negotiation = "standard", terms = {}) {
+  const base = coopContractFinancials(index, negotiation);
+  const duration = sanitizeContractDuration(terms.duration, base.duration);
+  const upfront = sanitizeContractAmount(terms.upfront, base.upfront, 0, Math.max(99999, base.upfront * 5));
+  const ownerReceipt = sanitizeContractAmount(terms.ownerReceipt, upfront, 0, upfront);
+  const penalty = sanitizeContractAmount(terms.penalty, base.penalty, 0, Math.max(99999, base.penalty * 5));
+  const partnerPerRound = sanitizeContractAmount(terms.partnerPerRound, base.partnerPerRound, 0, Math.max(99999, base.partnerPerRound * 5));
+  const ownerPerRound = sanitizeContractAmount(terms.ownerPerRound, base.ownerPerRound, 0, Math.max(99999, base.ownerPerRound * 5));
+  const dividend = partnerPerRound + ownerPerRound;
+  const share = dividend > 0 ? clamp(partnerPerRound / dividend, 0, 1) : 0;
+  const partnerExpected = partnerPerRound * duration;
+  const ownerExpected = ownerPerRound * duration;
+  const totalDividend = dividend * duration;
+  return {
+    ...base,
+    upfront,
+    ownerReceipt,
+    penalty,
+    share,
+    dividend,
+    duration,
+    partnerPerRound,
+    ownerPerRound,
+    partnerExpected,
+    ownerExpected,
+    totalDividend,
+    contractValue: upfront + totalDividend,
+    customized: Boolean(terms && Object.keys(terms).length),
+  };
+}
+
+function normalizeContractNegotiationMode(mode) {
+  return ["standard", "premiumShare", "safePenalty", "aggressiveShare", "lowEntry"].includes(mode) ? mode : "standard";
+}
+
+function contractTemplateForCity(index) {
+  const space = spaces[index] || {};
+  if (space.specialty === "finance") {
+    return { label: "金融分红合同", clause: "金融城市股价暴跌或抵押视为违约", bonus: "股息稳定，违约金偏重要" };
+  }
+  if (space.specialty === "tourism" || space.coastal) {
+    return { label: "旅游收益合同", clause: "旅游热度下滑且提前解约需赔付", bonus: "旺季收益高，市场波动明显" };
+  }
+  if (space.specialty === "tech") {
+    return { label: "科技孵化合同", clause: "科技园停建或转手控制权视为违约", bonus: "升级后回本更快" };
+  }
+  if (space.airport || space.specialty === "transit") {
+    return { label: "航线联营合同", clause: "航线城市转手或抵押触发违约", bonus: "适合配合环球路线" };
+  }
+  return { label: "城市共营合同", clause: "抵押 / 转手 / 破产触发违约", bonus: "标准城市分红协议" };
+}
+
+function contractRiskAssessment(index, financials, partner, owner) {
+  const afterCash = Math.max(0, (partner?.cash || 0) - financials.upfront);
+  const cashPressure = partner ? clamp(100 - Math.round((afterCash / Math.max(1, partner.cash)) * 100), 0, 70) : 40;
+  const penaltyPressure = clamp(Math.round((financials.penalty / Math.max(1, financials.partnerExpected + 1)) * 36), 0, 42);
+  const cityHeat = clamp(Math.round((cityRatingScore(index) - 55) * 0.45), -10, 22);
+  const ownerDebt = owner ? clamp(Math.round(riskIndex(owner).score * 0.22), 0, 22) : 10;
+  const reputationBuffer = partner ? Math.round((80 - contractReputationFor(partner)) * 0.28) : 0;
+  const score = clamp(28 + cashPressure + penaltyPressure + ownerDebt + reputationBuffer - cityHeat, 5, 98);
+  const level = score >= 68 ? "高风险" : score >= 42 ? "中风险" : "低风险";
+  const tone = score >= 68 ? "danger" : score >= 42 ? "warn" : "safe";
+  const advisor = score >= 68 ? "不建议" : score >= 42 ? "谨慎" : "推荐";
+  const reason = score >= 68
+    ? "入场费或违约压力偏高，容易拖累现金流"
+    : score >= 42
+      ? "收益不错，但需要留现金防止违约"
+      : "回本路径清楚，分红和违约风险较平衡";
+  return { score, level, tone, advisor, reason };
+}
+
+function contractReputationFor(player) {
+  return clamp(Number(player?.contractReputation) || 80, 0, 100);
+}
+
+function adjustContractReputation(player, delta) {
+  if (!player) return;
+  player.contractReputation = clamp(contractReputationFor(player) + delta, 0, 100);
 }
 
 function sanitizeContractClause(value) {
@@ -4210,26 +4391,88 @@ function createCoopContractStatusCard(contract, player) {
   const partner = playerById(contract.partnerId);
   const isPartner = player?.id === contract.partnerId;
   const card = document.createElement("article");
-  card.className = "deal-card deal-coop active-coop-contract";
+  card.className = `deal-card deal-coop active-coop-contract contract-status-${contract.status}`;
   const copy = document.createElement("div");
   copy.className = "deal-copy";
   const tag = document.createElement("span");
   tag.className = "deal-tag";
-  tag.textContent = isPartner ? "你是合作方" : "你是所有方";
+  tag.textContent = contract.status === "active" ? (isPartner ? "你是合作方" : "你是所有方") : `合同档案 / ${contractStatusLabel(contract.status)}`;
   const title = document.createElement("strong");
   title.textContent = spaceDisplayName(contract.propertyIndex);
   const detail = document.createElement("small");
-  detail.textContent = `${owner?.name || "原所有者"} + ${partner?.name || "合作方"} / 剩 ${contract.remainingRounds} 轮 / 违约金 ${formatMoney(contract.penalty)} / ${contract.clause}`;
+  detail.textContent = contract.status === "active"
+    ? `${owner?.name || "原所有者"} + ${partner?.name || "合作方"} / 剩 ${contract.remainingRounds} 轮 / ${contract.riskLevel} / ${contract.advisor} / 违约金 ${formatMoney(contract.penalty)}`
+    : `${owner?.name || "原所有者"} + ${partner?.name || "合作方"} / ${contract.settlement || contract.breachReason || "合同已归档"}`;
   copy.append(tag, title, detail);
 
   const button = document.createElement("button");
   button.type = "button";
-  button.dataset.coopAction = "terminate";
   button.dataset.coopId = contract.id;
-  button.textContent = "提前解约";
-  button.disabled = !canTerminateCoopContract(player, contract);
-  if (button.disabled) button.title = "只有合同双方可操作";
+  if (contract.status === "active") {
+    button.dataset.coopAction = "terminate";
+    button.textContent = "提前解约";
+    button.disabled = !canTerminateCoopContract(player, contract);
+    if (button.disabled) button.title = "只有合同双方可操作";
+  } else {
+    button.dataset.coopAction = "renew";
+    button.textContent = "续约";
+    button.disabled = !canRenewCoopContract(player, contract);
+    if (button.disabled) button.title = "需要双方仍存活且城市仍属原所有方";
+  }
   card.append(copy, button);
+  return card;
+}
+
+function contractStatusLabel(status) {
+  return {
+    active: "进行中",
+    completed: "已到期",
+    breached: "已违约",
+    terminated: "已解约",
+  }[status] || "归档";
+}
+
+function createCoopProposalCard(proposal, player) {
+  const owner = playerById(proposal.ownerId);
+  const partner = playerById(proposal.partnerId);
+  const financials = coopContractFinancialsWithTerms(proposal.propertyIndex, proposal.negotiationMode, proposal);
+  const needsYourApproval = proposal.status === "pending" && proposal.approverId === player?.id;
+  const waitingForOther = proposal.status === "pending" && proposal.proposerId === player?.id;
+  const card = document.createElement("article");
+  card.className = `deal-card deal-coop coop-proposal-card proposal-${proposal.status}`;
+  const copy = document.createElement("div");
+  copy.className = "deal-copy";
+  const tag = document.createElement("span");
+  tag.className = "deal-tag";
+  tag.textContent = needsYourApproval ? "需要你同意" : waitingForOther ? "等待对方同意" : "提案记录";
+  const title = document.createElement("strong");
+  title.textContent = `${spaceDisplayName(proposal.propertyIndex)} / ${proposal.modeLabel || financials.modeLabel}`;
+  const detail = document.createElement("small");
+  detail.textContent = `${partner?.name || "合作方"} 向 ${owner?.name || "所有方"} 提案 / 你付 ${formatMoney(financials.upfront)} / 对方收 ${formatMoney(financials.ownerReceipt)} / 给你 ${formatMoney(financials.partnerPerRound)}/轮 / 对方留 ${formatMoney(financials.ownerPerRound)}/轮 / ${financials.duration}轮 / 违约 ${formatMoney(financials.penalty)} / ${proposal.response || proposal.riskLevel}`;
+  copy.append(tag, title, detail);
+
+  const actions = document.createElement("div");
+  actions.className = "proposal-actions";
+  if (needsYourApproval) {
+    const accept = document.createElement("button");
+    accept.type = "button";
+    accept.dataset.coopAction = "acceptProposal";
+    accept.dataset.proposalId = proposal.id;
+    accept.textContent = "同意";
+    const decline = document.createElement("button");
+    decline.type = "button";
+    decline.dataset.coopAction = "declineProposal";
+    decline.dataset.proposalId = proposal.id;
+    decline.textContent = "拒绝";
+    actions.append(accept, decline);
+  } else {
+    const status = document.createElement("button");
+    status.type = "button";
+    status.disabled = true;
+    status.textContent = proposal.status === "rejected" ? "未同意" : "等待";
+    actions.appendChild(status);
+  }
+  card.append(copy, actions);
   return card;
 }
 
@@ -4912,19 +5155,25 @@ function renderControls() {
   syncMainActionDrawers(nextAction);
 }
 
-function openCoopPanelShortcut() {
+function openCoopPanelShortcut(target = "auto") {
+  if (typeof target !== "string") target = "auto";
   const player = humanPlayer();
   if (!player || state.gameOver) return;
   const offers = coopContractCandidates(player);
   const activeContracts = coopContractsForPlayer(player).filter((contract) => contract.status === "active");
+  const proposals = coopProposalsForPlayer(player).filter((proposal) => proposal.status === "pending");
   state.sidePanelMode = "coop";
   state.sidePanelCollapsed = false;
   state.drawerOpen = normalizeDrawerOpen({
     ...(state.drawerOpen || {}),
+    "panel:coopDraft": target === "draft" || (target === "auto" && Boolean(offers.length)),
     "panel:coopContracts": true,
+    "panel:coopProposals": target === "proposals" || Boolean(proposals.length),
     "panel:coopGuide": !offers.length && !activeContracts.length,
   });
-  if (offers.length) {
+  if (target === "proposals" || proposals.length) {
+    state.status = `已打开合同提案：有 ${proposals.length} 个合同需要同意或等待对方同意。`;
+  } else if (offers.length) {
     state.status = `已打开合作合同：有 ${offers.length} 个可签项目，点“签合同”即可合作分红。`;
   } else if (activeContracts.length) {
     state.status = `已打开合作合同：你有 ${activeContracts.length} 份合同正在分红。`;
@@ -6364,8 +6613,12 @@ function handleTradeClick(event) {
   const coopButton = event.target.closest("button[data-coop-action]");
   if (coopButton) {
     if (coopButton.dataset.coopAction === "draft") openCoopContractDraft();
+    if (coopButton.dataset.coopAction === "viewProposals") openCoopPanelShortcut("proposals");
     if (coopButton.dataset.coopAction === "sign") signCoopContract(Number(coopButton.dataset.coopIndex));
     if (coopButton.dataset.coopAction === "terminate") terminateCoopContract(coopButton.dataset.coopId);
+    if (coopButton.dataset.coopAction === "renew") renewCoopContract(coopButton.dataset.coopId);
+    if (coopButton.dataset.coopAction === "acceptProposal") acceptCoopProposal(coopButton.dataset.proposalId);
+    if (coopButton.dataset.coopAction === "declineProposal") declineCoopProposal(coopButton.dataset.proposalId);
     return;
   }
 
@@ -7343,11 +7596,32 @@ function coopContractsForPlayer(player) {
   ));
 }
 
+function archivedCoopContractsForPlayer(player) {
+  return coopContractsForPlayer(player)
+    .filter((contract) => contract.status !== "active")
+    .sort((a, b) => (b.endedRound || b.signedRound) - (a.endedRound || a.signedRound));
+}
+
+function coopProposalsForPlayer(player) {
+  if (!player) return [];
+  return normalizeCoopProposals(state.coopProposals)
+    .filter((proposal) => proposal.ownerId === player.id || proposal.partnerId === player.id || proposal.proposerId === player.id || proposal.approverId === player.id)
+    .slice(0, 8);
+}
+
 function hasActiveCoopContract(playerId, propertyIndex) {
   return normalizeCoopContracts(state.coopContracts).some((contract) => (
     contract.status === "active" &&
     contract.propertyIndex === propertyIndex &&
     (contract.ownerId === playerId || contract.partnerId === playerId)
+  ));
+}
+
+function hasPendingCoopProposal(playerId, propertyIndex) {
+  return normalizeCoopProposals(state.coopProposals).some((proposal) => (
+    proposal.status === "pending" &&
+    proposal.propertyIndex === propertyIndex &&
+    (proposal.ownerId === playerId || proposal.partnerId === playerId)
   ));
 }
 
@@ -7380,7 +7654,7 @@ function coopDividend(index) {
   return Math.round((rentBase + companyBase + ratingBase) * currentMarket().rent / 5) * 5;
 }
 
-function canSignCoopContract(player, index) {
+function canSignCoopContract(player, index, financials = coopContractFinancials(index)) {
   const owner = playerById(state.owners[index]);
   return Boolean(
     businessDealsOpen(player) &&
@@ -7389,18 +7663,37 @@ function canSignCoopContract(player, index) {
     spaces[index]?.type === "property" &&
     !state.mortgages[index] &&
     !hasActiveCoopContract(player.id, index) &&
-    player.cash >= coopUpfront(index) &&
+    !hasPendingCoopProposal(player.id, index) &&
+    player.cash >= financials.upfront &&
     normalizeCoopContracts(state.coopContracts).filter((contract) => contract.status === "active").length < COOP_CONTRACT_LIMIT,
   );
 }
 
-function coopDisabledReason(player, index) {
+function canFinalizeCoopContract(partner, index, financials = coopContractFinancials(index)) {
+  const owner = playerById(state.owners[index]);
+  return Boolean(
+    partner &&
+    !partner.bankrupt &&
+    !state.gameOver &&
+    owner &&
+    owner.id !== partner.id &&
+    !owner.bankrupt &&
+    spaces[index]?.type === "property" &&
+    !state.mortgages[index] &&
+    !hasActiveCoopContract(partner.id, index) &&
+    partner.cash >= financials.upfront &&
+    normalizeCoopContracts(state.coopContracts).filter((contract) => contract.status === "active").length < COOP_CONTRACT_LIMIT,
+  );
+}
+
+function coopDisabledReason(player, index, financials = coopContractFinancials(index)) {
   const owner = playerById(state.owners[index]);
   if (!businessDealsOpen(player)) return "行动阶段可签约";
   if (!owner || owner.id === player?.id) return "需要对手名下城市";
   if (state.mortgages[index]) return "城市已抵押";
   if (hasActiveCoopContract(player.id, index)) return "已有合作合同";
-  if (player.cash < coopUpfront(index)) return "现金不足";
+  if (hasPendingCoopProposal(player.id, index)) return "等待对方同意";
+  if (player.cash < financials.upfront) return "现金不足";
   return "合同席位已满";
 }
 
@@ -7426,7 +7719,7 @@ function closeContractDialog() {
   if (confirmContractButton) {
     confirmContractButton.disabled = false;
     confirmContractButton.title = "";
-    confirmContractButton.textContent = "签下合同";
+    confirmContractButton.textContent = "提交给对方";
   }
   if (contractDialog?.open) {
     contractDialog.close();
@@ -7438,12 +7731,33 @@ function closeContractDialog() {
 function confirmPendingCoopContract() {
   if (!Number.isInteger(pendingCoopContractIndex)) return;
   const partner = contractSigningPlayer();
-  if (!canSignCoopContract(partner, pendingCoopContractIndex)) return;
+  const negotiationMode = normalizeContractNegotiationMode(document.getElementById("contractNegotiationMode")?.value || "standard");
+  const owner = playerById(state.owners[pendingCoopContractIndex]);
+  const customTerms = collectContractCustomTerms(pendingCoopContractIndex, negotiationMode, partner, owner);
+  const financials = coopContractFinancialsWithTerms(pendingCoopContractIndex, negotiationMode, customTerms);
+  if (!canSignCoopContract(partner, pendingCoopContractIndex, financials)) {
+    updateContractConfirmButton(false, coopDisabledReason(partner, pendingCoopContractIndex, financials));
+    return;
+  }
   const clause = sanitizeContractClause(document.getElementById("contractClauseInput")?.value);
   const index = pendingCoopContractIndex;
   pendingCoopContractIndex = null;
   if (contractDialog?.open) contractDialog.close();
-  executeSignCoopContract(index, clause, partner?.id);
+  submitCoopProposal(index, clause, partner?.id, negotiationMode, customTerms);
+}
+
+function collectContractCustomTerms(index, negotiationMode, partner, owner) {
+  const base = coopContractFinancials(index, negotiationMode);
+  return {
+    upfront: sanitizeContractAmount(document.getElementById("contractUpfrontInput")?.value, base.upfront),
+    ownerReceipt: sanitizeContractAmount(document.getElementById("contractOwnerReceiptInput")?.value, document.getElementById("contractUpfrontInput")?.value || base.upfront),
+    partnerPerRound: sanitizeContractAmount(document.getElementById("contractPartnerRoundInput")?.value, base.partnerPerRound),
+    ownerPerRound: sanitizeContractAmount(document.getElementById("contractOwnerRoundInput")?.value, base.ownerPerRound),
+    penalty: sanitizeContractAmount(document.getElementById("contractPenaltyInput")?.value, base.penalty),
+    duration: sanitizeContractDuration(document.getElementById("contractDurationInput")?.value, base.duration),
+    ownerSignature: sanitizeContractSignature(document.getElementById("contractOwnerSignatureInput")?.value, owner?.name || "甲方"),
+    partnerSignature: sanitizeContractSignature(document.getElementById("contractPartnerSignatureInput")?.value, partner?.name || "乙方"),
+  };
 }
 
 function handleContractDialogChange(event) {
@@ -7454,15 +7768,23 @@ function handleContractDialogChange(event) {
   }
   if (event.target?.id === "contractDraftIndex") {
     const clause = document.getElementById("contractClauseInput")?.value || "";
+    const negotiationMode = normalizeContractNegotiationMode(document.getElementById("contractNegotiationMode")?.value || "standard");
     const partner = contractSigningPlayer();
     const index = event.target.value === "" ? null : Number(event.target.value);
     pendingCoopContractIndex = Number.isInteger(index) ? index : null;
-    renderCoopContractDialog(index, partner, { clause });
+    renderCoopContractDialog(index, partner, { clause, negotiationMode });
+    return;
+  }
+  if (event.target?.id === "contractNegotiationMode") {
+    const clause = document.getElementById("contractClauseInput")?.value || "";
+    const partner = contractSigningPlayer();
+    renderCoopContractDialog(pendingCoopContractIndex, partner, { clause, negotiationMode: event.target.value });
   }
 }
 
 function renderCoopContractDialog(index, partner, options = {}) {
   const owner = Number.isInteger(index) ? playerById(state.owners[index]) : null;
+  const negotiationMode = normalizeContractNegotiationMode(options.negotiationMode || "standard");
   contractDialogBody.innerHTML = "";
 
   const header = document.createElement("div");
@@ -7472,7 +7794,7 @@ function renderCoopContractDialog(index, partner, options = {}) {
   const title = document.createElement("h2");
   title.textContent = owner ? `${spaceDisplayName(index)} 合作合同书` : "公司合作合同起草";
   const badge = document.createElement("strong");
-  badge.textContent = owner ? `合同价值 ${formatMoney(coopContractFinancials(index).contractValue)}` : "等待合同项目";
+  badge.textContent = owner ? `合同价值 ${formatMoney(coopContractFinancials(index, negotiationMode).contractValue)}` : "等待合同项目";
   header.append(eyebrow, title, badge);
 
   const draftSelect = createContractDraftSelector(partner, index);
@@ -7486,11 +7808,13 @@ function renderCoopContractDialog(index, partner, options = {}) {
     return;
   }
 
-  const financials = coopContractFinancials(index);
+  const financials = coopContractFinancialsWithTerms(index, negotiationMode, options.terms || {});
   const propertyName = spaceDisplayName(index);
-  const canSign = canSignCoopContract(partner, index);
-  const disabledReason = canSign ? "" : coopDisabledReason(partner, index);
+  const canSign = canSignCoopContract(partner, index, financials);
+  const disabledReason = canSign ? "" : coopDisabledReason(partner, index, financials);
   updateContractConfirmButton(canSign, disabledReason);
+  const template = contractTemplateForCity(index);
+  const risk = contractRiskAssessment(index, financials, partner, owner);
 
   const meta = document.createElement("div");
   meta.className = "contract-paper-meta";
@@ -7499,11 +7823,15 @@ function renderCoopContractDialog(index, partner, options = {}) {
     createContractMetaPill("签署回合", `第 ${state.round} 轮`),
     createContractMetaPill("合作分红", `${Math.round(financials.share * 100)}%`),
     createContractMetaPill("城市评级", cityRating(index)),
+    createContractMetaPill("合同模板", template.label),
   );
+
+  const negotiationPanel = createContractNegotiationPanel(negotiationMode);
+  const insight = createContractInsightPanel(risk, template, financials);
 
   const summary = document.createElement("p");
   summary.className = "contract-summary-strip";
-  summary.textContent = `本合同由 ${partner.name} 向 ${owner.name} 支付 ${formatMoney(financials.upfront)}，获得 ${propertyName} 的合作分红权；${owner.name} 继续持有城市并保留剩余收益。`;
+  summary.textContent = `本合同由玩家填写条款：${partner.name} 提交给 ${owner.name} 审批；只有 ${owner.name} 同意后才会扣款并生成正式合同。`;
 
   const parties = document.createElement("div");
   parties.className = "contract-party-grid";
@@ -7515,12 +7843,12 @@ function renderCoopContractDialog(index, partner, options = {}) {
   const moneyGrid = document.createElement("div");
   moneyGrid.className = "contract-money-grid";
   moneyGrid.append(
-    createContractMoneyItem("你给对方", formatMoney(financials.upfront), "签约时立即支付给城市持有人"),
-    createContractMoneyItem("对方当下收到", formatMoney(financials.upfront), `${owner.name} 立即入账`),
-    createContractMoneyItem("对方给你", `${formatMoney(financials.partnerPerRound)} / 轮`, `预计总分红 ${formatMoney(financials.partnerExpected)}`),
-    createContractMoneyItem("对方保留", `${formatMoney(financials.ownerPerRound)} / 轮`, `预计保留 ${formatMoney(financials.ownerExpected)}`),
-    createContractMoneyItem("违约金", formatMoney(financials.penalty), "触发违约条款时由违约方支付"),
-    createContractMoneyItem("合同期限", `${COOP_CONTRACT_DURATION} 轮`, `预计分红池 ${formatMoney(financials.totalDividend)}`),
+    createContractMoneyInput("你给对方", "contractUpfrontInput", financials.upfront, "正式生效时从你现金扣除"),
+    createContractMoneyInput("对方当下收到", "contractOwnerReceiptInput", financials.ownerReceipt, `${owner.name} 同意后立即入账`),
+    createContractMoneyInput("对方给你 / 每轮", "contractPartnerRoundInput", financials.partnerPerRound, `按你填写的期限结算`),
+    createContractMoneyInput("对方保留 / 每轮", "contractOwnerRoundInput", financials.ownerPerRound, `${owner.name} 每轮保留收益`),
+    createContractMoneyInput("违约金", "contractPenaltyInput", financials.penalty, "触发违约条款时由违约方支付"),
+    createContractMoneyInput("合同期限 / 轮", "contractDurationInput", financials.duration, `1-${COOP_CONTRACT_MAX_DURATION} 轮`),
   );
 
   const terms = document.createElement("div");
@@ -7530,6 +7858,7 @@ function renderCoopContractDialog(index, partner, options = {}) {
   const select = document.createElement("select");
   select.id = "contractClausePreset";
   [
+    template.clause,
     "抵押 / 转手 / 破产触发违约",
     "抵押城市或出售控制权视为违约",
     "所有方破产或城市被收购视为违约",
@@ -7548,14 +7877,14 @@ function renderCoopContractDialog(index, partner, options = {}) {
   textarea.placeholder = "填写违约条款，例如：抵押、转手、破产、提前解约如何赔付。";
   const note = document.createElement("p");
   note.textContent = canSign
-    ? "确认后才会扣款并生成合同；合同会显示在“合同”抽屉里，可查看分红、剩余轮数和提前解约。"
+    ? "金额、期限和签名都可以自己填；提交后先给对方确认，只有对方同意后才会扣款并生成正式合同。"
     : `现在不能签：${disabledReason}。你仍可先查看合同内容和条款。`;
   terms.append(termsTitle, select, textarea, note);
 
   const finePrint = createContractFinePrint(propertyName, financials);
   const signatureBlock = createContractSignatureBlock(owner, partner, canSign);
 
-  contractDialogBody.append(header, draftSelect, meta, summary, parties, moneyGrid, terms, finePrint, signatureBlock);
+  contractDialogBody.append(header, draftSelect, negotiationPanel, meta, insight, summary, parties, moneyGrid, terms, finePrint, signatureBlock);
 }
 
 function createContractMetaPill(label, value) {
@@ -7567,6 +7896,58 @@ function createContractMetaPill(label, value) {
   strong.textContent = value;
   pill.append(small, strong);
   return pill;
+}
+
+function createContractNegotiationPanel(selectedMode) {
+  const panel = document.createElement("div");
+  panel.className = "contract-negotiation-panel";
+  const label = document.createElement("label");
+  label.setAttribute("for", "contractNegotiationMode");
+  label.textContent = "谈判方案";
+  const select = document.createElement("select");
+  select.id = "contractNegotiationMode";
+  [
+    ["standard", "标准合同：价格、分红、违约金平衡"],
+    ["premiumShare", "提高入场费，换更高分红"],
+    ["safePenalty", "提高入场费，降低违约金"],
+    ["aggressiveShare", "强势高分红，高入场费高风险"],
+    ["lowEntry", "低入场费，低分红高违约约束"],
+  ].forEach(([value, text]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = text;
+    select.appendChild(option);
+  });
+  select.value = normalizeContractNegotiationMode(selectedMode);
+  const hint = document.createElement("small");
+  hint.textContent = "改变谈判方案会刷新合同价值、分红比例、违约金和顾问评分。";
+  panel.append(label, select, hint);
+  return panel;
+}
+
+function createContractInsightPanel(risk, template, financials) {
+  const panel = document.createElement("div");
+  panel.className = `contract-insight-panel risk-${risk.tone}`;
+  panel.append(
+    createContractInsightItem("合同顾问", risk.advisor, risk.reason),
+    createContractInsightItem("风险等级", `${risk.level} / ${risk.score}`, "综合现金压力、违约金、城市热度和信誉"),
+    createContractInsightItem("城市模板", template.label, template.bonus),
+    createContractInsightItem("预计回本", `${Math.max(1, Math.ceil(financials.upfront / Math.max(1, financials.partnerPerRound)))} 轮`, `预计总分红 ${formatMoney(financials.partnerExpected)}`),
+  );
+  return panel;
+}
+
+function createContractInsightItem(label, value, detail) {
+  const item = document.createElement("article");
+  item.className = "contract-insight-item";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  const span = document.createElement("span");
+  span.textContent = detail;
+  item.append(small, strong, span);
+  return item;
 }
 
 function createBlankContractPreview(partner) {
@@ -7584,7 +7965,7 @@ function createBlankContractPreview(partner) {
 
   const summary = document.createElement("p");
   summary.className = "contract-summary-strip";
-  summary.textContent = "这是一张空白合同样本：选择对手名下城市后，会自动填入双方玩家、合同价值、给付金额、分红、违约金和签名栏。";
+  summary.textContent = "这是一张空白合同样本：选择对手名下城市后，会自动填入双方玩家、合同价值、给付金额、分红、违约金和签名栏；正式合同必须提交给对方同意后才会生效。";
 
   const parties = document.createElement("div");
   parties.className = "contract-party-grid";
@@ -7651,8 +8032,8 @@ function createContractDraftSelector(player, selectedIndex) {
 function updateContractConfirmButton(canSign, reason = "") {
   if (!confirmContractButton) return;
   confirmContractButton.disabled = !canSign;
-  confirmContractButton.title = canSign ? "确认签下合同" : reason;
-  confirmContractButton.textContent = canSign ? "签下合同" : "暂不能签";
+  confirmContractButton.title = canSign ? "提交给对方确认" : reason;
+  confirmContractButton.textContent = canSign ? "提交给对方" : "暂不能签";
 }
 
 function createContractFinePrint(propertyName, financials) {
@@ -7663,9 +8044,11 @@ function createContractFinePrint(propertyName, financials) {
   const list = document.createElement("ol");
   const shareText = financials ? `${Math.round(financials.share * 100)}%` : "合同约定比例";
   const penaltyText = financials ? formatMoney(financials.penalty) : "合同约定违约金";
+  const durationText = financials ? `${financials.duration} 轮` : "合同约定期限";
   [
-    `${propertyName} 每轮产生分红时，合作投资人先按 ${shareText} 取得收益。`,
+    `${propertyName} 每轮按玩家填写的分红条款结算，参考比例为 ${shareText}，期限为 ${durationText}。`,
     `若城市被抵押、转手、收购，或任一方破产，系统会按违约条款结算，违约金为 ${penaltyText}。`,
+    "合同必须由对方同意后才会扣款生效；单方面点击只能提交提案。",
     "签约后不能用优惠券、口头承诺或临时反悔抵扣入场费。",
     "本合同只影响游戏内现金流，不会改变城市所有权，除非之后触发并购或交易系统。",
   ].forEach((text) => {
@@ -7681,27 +8064,193 @@ function createContractSignatureBlock(owner, partner, canSign) {
   const block = document.createElement("section");
   block.className = "contract-signature-block";
   block.append(
-    createContractSignatureLine("甲方签名", owner.name),
-    createContractSignatureLine("乙方签名", partner.name),
+    createContractSignatureLine("甲方签名", owner.name, canSign ? "contractOwnerSignatureInput" : ""),
+    createContractSignatureLine("乙方签名", partner.name, canSign ? "contractPartnerSignatureInput" : ""),
   );
   const stamp = document.createElement("div");
   stamp.className = canSign ? "contract-stamp is-ready" : "contract-stamp";
-  stamp.textContent = canSign ? "待签署" : "条件未满足";
+  stamp.textContent = canSign ? "待对方同意" : "条件未满足";
   block.appendChild(stamp);
   return block;
 }
 
-function createContractSignatureLine(label, name) {
+function createContractSignatureLine(label, name, inputId = "") {
   const line = document.createElement("article");
   line.className = "contract-signature-line";
   const small = document.createElement("small");
   small.textContent = label;
-  const strong = document.createElement("strong");
-  strong.textContent = name;
+  const signer = inputId ? document.createElement("input") : document.createElement("strong");
+  if (inputId) {
+    signer.id = inputId;
+    signer.type = "text";
+    signer.maxLength = 24;
+    signer.value = sanitizeContractSignature(name, label);
+    signer.setAttribute("aria-label", label);
+  } else {
+    signer.textContent = name;
+  }
   const rule = document.createElement("span");
-  rule.textContent = "签名线";
-  line.append(small, strong, rule);
+  rule.textContent = inputId ? "玩家可填写签名" : "签名线";
+  line.append(small, signer, rule);
   return line;
+}
+
+function buildCoopProposal(index, partnerId, negotiationMode, clause, proposerId = partnerId, customTerms = {}) {
+  const partner = playerById(partnerId);
+  const owner = playerById(state.owners[index]);
+  if (!partner || !owner) return null;
+  const financials = coopContractFinancialsWithTerms(index, negotiationMode, customTerms);
+  const risk = contractRiskAssessment(index, financials, partner, owner);
+  const template = contractTemplateForCity(index);
+  return {
+    id: `proposal-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    propertyIndex: index,
+    ownerId: owner.id,
+    partnerId: partner.id,
+    proposerId,
+    approverId: owner.id,
+    negotiationMode: financials.mode,
+    modeLabel: financials.modeLabel,
+    upfront: financials.upfront,
+    ownerReceipt: financials.ownerReceipt,
+    penalty: financials.penalty,
+    share: financials.share,
+    partnerPerRound: financials.partnerPerRound,
+    ownerPerRound: financials.ownerPerRound,
+    duration: financials.duration,
+    contractValue: financials.contractValue,
+    clause: sanitizeContractClause(clause || template.clause),
+    template: template.label,
+    riskLevel: risk.level,
+    riskScore: risk.score,
+    advisor: risk.advisor,
+    round: state.round,
+    status: "pending",
+    response: "等待对方同意",
+    ownerSignature: sanitizeContractSignature(customTerms.ownerSignature, owner.name),
+    partnerSignature: sanitizeContractSignature(customTerms.partnerSignature, partner.name),
+  };
+}
+
+function submitCoopProposal(index, clause, partnerId, negotiationMode = "standard", customTerms = {}) {
+  const partner = playerById(partnerId);
+  const owner = playerById(state.owners[index]);
+  const financials = coopContractFinancialsWithTerms(index, negotiationMode, customTerms);
+  if (!partner || !owner || !canSignCoopContract(partner, index, financials)) return;
+  const proposal = buildCoopProposal(index, partner.id, negotiationMode, clause, partner.id, customTerms);
+  if (!proposal) return;
+
+  if (owner.isAI) {
+    resolveAiCoopProposal(proposal);
+    render();
+    return;
+  }
+
+  state.coopProposals = [proposal, ...normalizeCoopProposals(state.coopProposals)].slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+  state.status = `${partner.name} 已把 ${spaceDisplayName(index)} 合同提交给 ${owner.name}，等待对方同意。`;
+  logEvent(`${partner.name} 提交 ${spaceDisplayName(index)} 合同提案，等待 ${owner.name} 同意。`);
+  addNews("合同待确认", `${spaceDisplayName(index)} 合同需要 ${owner.name} 同意后才生效。`, "deal");
+  render();
+}
+
+function acceptCoopProposal(proposalId) {
+  const proposal = normalizeCoopProposals(state.coopProposals).find((item) => item.id === proposalId);
+  const approver = playerById(proposal?.approverId);
+  if (!proposal || proposal.status !== "pending" || !approver || approver.isAI) return;
+  const partner = playerById(proposal.partnerId);
+  const financials = coopContractFinancialsWithTerms(proposal.propertyIndex, proposal.negotiationMode, proposal);
+  if (!canFinalizeCoopContract(partner, proposal.propertyIndex, financials)) {
+    proposal.status = "rejected";
+    proposal.response = "条件已变化，不能生效";
+    state.coopProposals = normalizeCoopProposals(state.coopProposals).map((item) => item.id === proposal.id ? proposal : item);
+    render();
+    return;
+  }
+  state.coopProposals = normalizeCoopProposals(state.coopProposals).filter((item) => item.id !== proposal.id);
+  proposal.ownerSignature = sanitizeContractSignature(approver.name, approver.name);
+  executeSignCoopContract(proposal.propertyIndex, proposal.clause, proposal.partnerId, proposal.negotiationMode, proposal.id, proposal);
+  render();
+}
+
+function declineCoopProposal(proposalId) {
+  const proposal = normalizeCoopProposals(state.coopProposals).find((item) => item.id === proposalId);
+  const approver = playerById(proposal?.approverId);
+  if (!proposal || proposal.status !== "pending" || !approver || approver.isAI) return;
+  proposal.status = "rejected";
+  proposal.response = `${approver.name} 不同意`;
+  state.coopProposals = normalizeCoopProposals(state.coopProposals).map((item) => item.id === proposal.id ? proposal : item);
+  state.status = `${approver.name} 拒绝了 ${spaceDisplayName(proposal.propertyIndex)} 合同提案。`;
+  logEvent(`${approver.name} 拒绝合同提案：${spaceDisplayName(proposal.propertyIndex)}。`);
+  render();
+}
+
+function maybeCreateAiCoopProposal(human) {
+  if (!human || human.isAI || state.gameOver || state.lastCoopProposalRound === state.round) return;
+  if (coopProposalsForPlayer(human).some((proposal) => proposal.status === "pending")) return;
+  const humanOwned = ownedPropertyIndexes(human.id)
+    .filter((index) => spaces[index]?.type === "property" && !state.mortgages[index])
+    .filter((index) => !hasActiveCoopContract(human.id, index) && !hasPendingCoopProposal(human.id, index))
+    .sort((a, b) => coopScore(b) - coopScore(a));
+  if (!humanOwned.length) return;
+
+  const aiPartner = activePlayers()
+    .filter((player) => player.isAI && player.cash >= 220)
+    .sort((a, b) => b.cash - a.cash)[0];
+  if (!aiPartner) return;
+
+  const index = humanOwned[0];
+  const negotiationMode = aiPartner.cash > coopUpfront(index) * 1.35 ? "premiumShare" : "standard";
+  const financials = coopContractFinancials(index, negotiationMode);
+  if (!canFinalizeCoopContract(aiPartner, index, financials)) return;
+
+  const proposal = buildCoopProposal(index, aiPartner.id, negotiationMode, contractTemplateForCity(index).clause, aiPartner.id, {
+    ownerSignature: human.name,
+    partnerSignature: aiPartner.name,
+  });
+  if (!proposal) return;
+  proposal.approverId = human.id;
+  proposal.response = "对手主动提出合作，等待你同意";
+  state.coopProposals = [proposal, ...normalizeCoopProposals(state.coopProposals)].slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+  state.lastCoopProposalRound = state.round;
+  addNews("对手合同提案", `${aiPartner.name} 想与你合作 ${spaceDisplayName(index)}，需要你同意。`, "deal");
+}
+
+function resolveAiCoopProposal(proposal) {
+  const owner = playerById(proposal.ownerId);
+  const partner = playerById(proposal.partnerId);
+  const financials = coopContractFinancialsWithTerms(proposal.propertyIndex, proposal.negotiationMode, proposal);
+  const baseUpfront = coopUpfront(proposal.propertyIndex);
+  const ownerRisk = owner ? riskIndex(owner).score : 50;
+  const partnerRep = contractReputationFor(partner);
+  const minimumOwnerShare = Math.round(coopDividend(proposal.propertyIndex) * 0.28);
+  const accepts = proposal.ownerReceipt >= Math.round(baseUpfront * 0.92) &&
+    proposal.riskScore < 76 &&
+    proposal.ownerPerRound >= minimumOwnerShare &&
+    proposal.duration <= 8 &&
+    partnerRep >= 42 &&
+    ownerRisk < 86;
+
+  if (accepts) {
+    state.status = `${owner.name} 同意了 ${partner.name} 的 ${spaceDisplayName(proposal.propertyIndex)} 合同提案。`;
+    logEvent(`${owner.name} 同意合同提案，${spaceDisplayName(proposal.propertyIndex)} 合同正式生效。`);
+    proposal.ownerSignature = sanitizeContractSignature(owner.name, owner.name);
+    executeSignCoopContract(proposal.propertyIndex, proposal.clause, proposal.partnerId, proposal.negotiationMode, proposal.id, proposal);
+    return;
+  }
+
+  proposal.status = "rejected";
+  proposal.response = proposal.ownerReceipt < baseUpfront
+    ? "对方要求更高入场费"
+    : proposal.ownerPerRound < minimumOwnerShare
+      ? "对方保留收益太低"
+      : proposal.duration > 8
+        ? "对方不接受太长期限"
+        : "对方认为风险太高";
+  state.coopProposals = [proposal, ...normalizeCoopProposals(state.coopProposals)].slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+  state.status = `${owner.name} 没有同意 ${spaceDisplayName(proposal.propertyIndex)} 合同：${proposal.response}。`;
+  logEvent(`${owner.name} 拒绝 ${partner?.name || "合作方"} 的合同提案：${proposal.response}。`);
+  addNews("合同未通过", `${spaceDisplayName(proposal.propertyIndex)} 合同被对方拒绝：${proposal.response}。`, "debt");
+  showContractAnimation("合同未通过", `${owner.name}：${proposal.response}`, "debt");
 }
 
 function createContractInfoBlock(label, name, detail) {
@@ -7730,33 +8279,75 @@ function createContractMoneyItem(label, value, detail) {
   return item;
 }
 
-function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发违约", partnerId = currentPlayer()?.id) {
+function createContractMoneyInput(label, inputId, value, detail) {
+  const item = document.createElement("label");
+  item.className = "contract-money-item contract-field-item";
+  const small = document.createElement("small");
+  small.textContent = label;
+  const input = document.createElement("input");
+  input.id = inputId;
+  input.type = "number";
+  input.inputMode = "numeric";
+  input.min = inputId === "contractDurationInput" ? "1" : "0";
+  input.max = inputId === "contractDurationInput" ? String(COOP_CONTRACT_MAX_DURATION) : "99999";
+  input.step = "1";
+  input.value = String(Math.max(0, Math.round(Number(value) || 0)));
+  const span = document.createElement("span");
+  span.textContent = detail;
+  item.append(small, input, span);
+  return item;
+}
+
+function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发违约", partnerId = currentPlayer()?.id, negotiationMode = "standard", proposalId = "", agreedTerms = {}) {
   const partner = playerById(partnerId) || currentPlayer();
   const owner = playerById(state.owners[index]);
-  if (!canSignCoopContract(partner, index) || !owner) return;
+  const financials = coopContractFinancialsWithTerms(index, negotiationMode, agreedTerms || {});
+  if (!canFinalizeCoopContract(partner, index, financials) || !owner) return;
 
-  const upfront = coopUpfront(index);
-  const penalty = coopPenalty(index);
+  const upfront = financials.upfront;
+  const ownerReceipt = financials.ownerReceipt;
+  const penalty = financials.penalty;
+  const risk = contractRiskAssessment(index, financials, partner, owner);
+  const template = contractTemplateForCity(index);
   partner.cash -= upfront;
-  owner.cash += upfront;
+  owner.cash += ownerReceipt;
   const contract = {
     id: `coop-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     propertyIndex: index,
     ownerId: owner.id,
     partnerId: partner.id,
-    share: coopPartnerShare(index),
+    share: financials.share,
+    partnerPerRound: financials.partnerPerRound,
+    ownerPerRound: financials.ownerPerRound,
     upfront,
+    ownerReceipt,
     penalty,
-    remainingRounds: COOP_CONTRACT_DURATION,
+    duration: financials.duration,
+    remainingRounds: financials.duration,
     signedRound: state.round,
     status: "active",
     clause: sanitizeContractClause(clause),
+    negotiationMode: financials.mode,
+    template: template.label,
+    riskLevel: risk.level,
+    riskScore: risk.score,
+    advisor: risk.advisor,
+    approvedBy: owner.id,
+    proposalId: String(proposalId || ""),
+    ownerSignature: sanitizeContractSignature(agreedTerms?.ownerSignature, owner.name),
+    partnerSignature: sanitizeContractSignature(agreedTerms?.partnerSignature, partner.name),
+    totalPartnerPaid: 0,
+    totalOwnerPaid: 0,
+    totalDividend: 0,
+    settlement: "",
   };
-  state.coopContracts = [contract, ...normalizeCoopContracts(state.coopContracts)].slice(0, COOP_CONTRACT_LIMIT);
+  state.coopContracts = [contract, ...normalizeCoopContracts(state.coopContracts)].slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+  adjustContractReputation(partner, 1);
+  adjustContractReputation(owner, 1);
   addCityRevenue(index, Math.round(upfront * 0.22));
   awardSkillXp(partner, 30, `${spaceDisplayName(index)} 合作合同`);
-  state.status = `${partner.name} 与 ${owner.name} 签下 ${spaceDisplayName(index)} 合作合同，入场费 ${formatMoney(upfront)}。`;
-  logEvent(`${partner.name} 与 ${owner.name} 签订 ${spaceDisplayName(index)} 合作合同。违约金 ${formatMoney(penalty)}。`);
+  state.status = `${owner.name} 已同意，${partner.name} 与 ${owner.name} 签下 ${spaceDisplayName(index)} ${financials.modeLabel}，你付 ${formatMoney(upfront)}，对方收 ${formatMoney(ownerReceipt)}。`;
+  logEvent(`${owner.name} 同意后，${partner.name} 与 ${owner.name} 签订 ${spaceDisplayName(index)} 合作合同。期限 ${financials.duration} 轮，违约金 ${formatMoney(penalty)}。`);
   addNews("合作合同", `${partner.name} 入股合作 ${spaceDisplayName(index)}，之后按合同分红。`, "deal");
   logDeal("合作合同", `${partner.name} + ${owner.name} 共营 ${spaceDisplayName(index)}`, upfront, "coop");
   showEventBurst(`${spaceDisplayName(index)} 合作`, "gain");
@@ -7766,6 +8357,31 @@ function executeSignCoopContract(index, clause = "抵押 / 转手 / 破产触发
 
 function canTerminateCoopContract(player, contract) {
   return Boolean(player && contract?.status === "active" && (contract.ownerId === player.id || contract.partnerId === player.id));
+}
+
+function canRenewCoopContract(player, contract) {
+  if (!player || !contract || contract.status === "active") return false;
+  const owner = playerById(contract.ownerId);
+  const partner = playerById(contract.partnerId);
+  return Boolean(
+    owner &&
+    partner &&
+    !owner.bankrupt &&
+    !partner.bankrupt &&
+    state.owners[contract.propertyIndex] === owner.id &&
+    !state.mortgages[contract.propertyIndex] &&
+    player.id === partner.id &&
+    !hasActiveCoopContract(partner.id, contract.propertyIndex) &&
+    !hasPendingCoopProposal(partner.id, contract.propertyIndex),
+  );
+}
+
+function renewCoopContract(contractId) {
+  const player = humanPlayer() || currentPlayer();
+  const contract = normalizeCoopContracts(state.coopContracts).find((item) => item.id === contractId);
+  if (!canRenewCoopContract(player, contract)) return;
+  state.status = `准备续约 ${spaceDisplayName(contract.propertyIndex)}，仍需对方同意后才会生效。`;
+  openCoopContractDraft(contract.propertyIndex);
 }
 
 function terminateCoopContract(contractId) {
@@ -7783,10 +8399,14 @@ function terminateCoopContract(contractId) {
   contract.remainingRounds = 0;
   contract.endedRound = state.round;
   contract.breachReason = "提前解约";
+  contract.settlement = `${player.name} 提前解约，支付 ${formatMoney(paid)}；信誉下降。`;
+  adjustContractReputation(player, -3);
+  if (other && !other.bankrupt) adjustContractReputation(other, 1);
   state.coopContracts = normalizeCoopContracts(state.coopContracts).map((item) => item.id === contract.id ? contract : item);
   state.status = `${player.name} 提前解除 ${spaceDisplayName(contract.propertyIndex)} 合作合同，支付 ${formatMoney(paid)}。`;
   logEvent(`${player.name} 提前解除 ${spaceDisplayName(contract.propertyIndex)} 合同。`);
   logDeal("合作解约", `${spaceDisplayName(contract.propertyIndex)} 提前解除`, paid, "coop");
+  showContractAnimation("合同解约", `${player.name} 支付 ${formatMoney(paid)} / 信誉 ${contractReputationFor(player)}`, "debt");
   if (paid < fee) bankruptPlayer(player, "合作提前解约金不足");
   render();
 }
@@ -8870,7 +9490,55 @@ function normalizeCoopContracts(contracts) {
   return contracts
     .map(normalizeCoopContract)
     .filter(Boolean)
-    .slice(0, COOP_CONTRACT_LIMIT);
+    .slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+}
+
+function normalizeCoopProposals(proposals) {
+  if (!Array.isArray(proposals)) return [];
+  return proposals
+    .map(normalizeCoopProposal)
+    .filter(Boolean)
+    .slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+}
+
+function normalizeCoopProposal(proposal) {
+  if (!proposal || typeof proposal !== "object") return null;
+  const propertyIndex = Number(proposal.propertyIndex);
+  if (!Number.isInteger(propertyIndex) || spaces[propertyIndex]?.type !== "property") return null;
+  const ownerId = String(proposal.ownerId || "");
+  const partnerId = String(proposal.partnerId || "");
+  if (!ownerId || !partnerId || ownerId === partnerId) return null;
+  const negotiationMode = normalizeContractNegotiationMode(proposal.negotiationMode || "standard");
+  const financials = coopContractFinancialsWithTerms(propertyIndex, negotiationMode, proposal);
+  const status = ["pending", "rejected"].includes(proposal.status) ? proposal.status : "pending";
+  return {
+    id: String(proposal.id || `proposal-${propertyIndex}-${ownerId}-${partnerId}-${Number(proposal.round) || 1}`),
+    propertyIndex,
+    ownerId,
+    partnerId,
+    proposerId: String(proposal.proposerId || partnerId),
+    approverId: String(proposal.approverId || ownerId),
+    negotiationMode,
+    modeLabel: String(proposal.modeLabel || financials.modeLabel).slice(0, 28),
+    upfront: financials.upfront,
+    ownerReceipt: financials.ownerReceipt,
+    penalty: financials.penalty,
+    share: clamp(Number(proposal.share) || financials.share, 0, 1),
+    partnerPerRound: financials.partnerPerRound,
+    ownerPerRound: financials.ownerPerRound,
+    duration: financials.duration,
+    contractValue: financials.contractValue,
+    clause: sanitizeContractClause(proposal.clause),
+    template: String(proposal.template || contractTemplateForCity(propertyIndex).label).slice(0, 24),
+    riskLevel: ["低风险", "中风险", "高风险"].includes(proposal.riskLevel) ? proposal.riskLevel : "中风险",
+    riskScore: clamp(Number(proposal.riskScore) || 45, 0, 100),
+    advisor: ["推荐", "谨慎", "不建议"].includes(proposal.advisor) ? proposal.advisor : "谨慎",
+    round: Math.max(1, Number(proposal.round) || 1),
+    status,
+    response: String(proposal.response || (status === "pending" ? "等待对方同意" : "对方未同意")).slice(0, 40),
+    ownerSignature: sanitizeContractSignature(proposal.ownerSignature, playerById(ownerId)?.name || "甲方"),
+    partnerSignature: sanitizeContractSignature(proposal.partnerSignature, playerById(partnerId)?.name || "乙方"),
+  };
 }
 
 function normalizeCoopContract(contract) {
@@ -8880,20 +9548,39 @@ function normalizeCoopContract(contract) {
   const ownerId = String(contract.ownerId || "");
   const partnerId = String(contract.partnerId || "");
   if (!ownerId || !partnerId || ownerId === partnerId) return null;
+  const negotiationMode = normalizeContractNegotiationMode(contract.negotiationMode || "standard");
+  const financials = coopContractFinancialsWithTerms(propertyIndex, negotiationMode, contract);
   return {
     id: String(contract.id || `coop-${propertyIndex}-${ownerId}-${partnerId}-${Number(contract.signedRound) || 1}`),
     propertyIndex,
     ownerId,
     partnerId,
-    share: clamp(Number(contract.share) || coopPartnerShare(propertyIndex), 0.2, 0.55),
-    upfront: Math.max(0, Math.round(Number(contract.upfront) || coopUpfront(propertyIndex))),
-    penalty: Math.max(0, Math.round(Number(contract.penalty) || coopPenalty(propertyIndex))),
-    remainingRounds: clamp(Number(contract.remainingRounds) || 0, 0, 20),
+    share: clamp(Number(contract.share) || financials.share, 0, 1),
+    partnerPerRound: financials.partnerPerRound,
+    ownerPerRound: financials.ownerPerRound,
+    upfront: financials.upfront,
+    ownerReceipt: financials.ownerReceipt,
+    penalty: financials.penalty,
+    duration: financials.duration,
+    remainingRounds: clamp(Number(contract.remainingRounds) || 0, 0, COOP_CONTRACT_MAX_DURATION),
     signedRound: Math.max(1, Number(contract.signedRound) || 1),
     endedRound: contract.endedRound ? Math.max(1, Number(contract.endedRound) || 1) : 0,
     status: ["active", "completed", "breached", "terminated"].includes(contract.status) ? contract.status : "active",
     clause: sanitizeContractClause(contract.clause),
     breachReason: String(contract.breachReason || "").slice(0, 28),
+    negotiationMode,
+    template: String(contract.template || contractTemplateForCity(propertyIndex).label).slice(0, 24),
+    riskLevel: ["低风险", "中风险", "高风险"].includes(contract.riskLevel) ? contract.riskLevel : "中风险",
+    riskScore: clamp(Number(contract.riskScore) || 45, 0, 100),
+    advisor: ["推荐", "谨慎", "不建议"].includes(contract.advisor) ? contract.advisor : "谨慎",
+    approvedBy: String(contract.approvedBy || ""),
+    proposalId: String(contract.proposalId || ""),
+    ownerSignature: sanitizeContractSignature(contract.ownerSignature, playerById(ownerId)?.name || "甲方"),
+    partnerSignature: sanitizeContractSignature(contract.partnerSignature, playerById(partnerId)?.name || "乙方"),
+    totalPartnerPaid: Math.max(0, Math.round(Number(contract.totalPartnerPaid) || 0)),
+    totalOwnerPaid: Math.max(0, Math.round(Number(contract.totalOwnerPaid) || 0)),
+    totalDividend: Math.max(0, Math.round(Number(contract.totalDividend) || 0)),
+    settlement: String(contract.settlement || "").slice(0, 120),
   };
 }
 
@@ -8935,7 +9622,8 @@ function bankLoanInterestRate(player) {
   const tier = bankCardTier(player);
   const risk = riskIndex(player).score;
   const bankNetworkDiscount = ownedCompanyCount(player, "bank") * 0.006;
-  return clamp(LOAN_INTEREST_RATE + risk / 1800 - tier.rateDiscount - bankNetworkDiscount, 0.025, 0.16);
+  const reputationPenalty = Math.max(0, 75 - contractReputationFor(player)) / 2600;
+  return clamp(LOAN_INTEREST_RATE + risk / 1800 + reputationPenalty - tier.rateDiscount - bankNetworkDiscount, 0.025, 0.16);
 }
 
 function bankDepositInterestFor(player) {
@@ -10161,23 +10849,59 @@ function applyCoopContracts() {
       return;
     }
 
-    const dividend = coopDividend(index);
-    const partnerShare = Math.round(dividend * contract.share);
-    const ownerShare = Math.max(0, dividend - partnerShare);
+    const defaultDividend = coopDividend(index);
+    const partnerShare = Number.isFinite(Number(contract.partnerPerRound))
+      ? Math.max(0, Math.round(Number(contract.partnerPerRound)))
+      : Math.round(defaultDividend * contract.share);
+    const ownerShare = Number.isFinite(Number(contract.ownerPerRound))
+      ? Math.max(0, Math.round(Number(contract.ownerPerRound)))
+      : Math.max(0, defaultDividend - partnerShare);
+    const dividend = partnerShare + ownerShare;
     owner.cash += ownerShare;
     partner.cash += partnerShare;
     addCityRevenue(index, dividend);
+    contract.totalPartnerPaid = (contract.totalPartnerPaid || 0) + partnerShare;
+    contract.totalOwnerPaid = (contract.totalOwnerPaid || 0) + ownerShare;
+    contract.totalDividend = (contract.totalDividend || 0) + dividend;
     contract.remainingRounds -= 1;
     logEvent(`${spaceDisplayName(index)} 合作合同分红：${owner.name} ${formatMoney(ownerShare)}，${partner.name} ${formatMoney(partnerShare)}。`);
     if (contract.remainingRounds <= 0) {
       contract.status = "completed";
       contract.endedRound = state.round;
       contract.breachReason = "正常到期";
+      contract.settlement = contractSettlementSummary(contract, owner, partner);
+      adjustContractReputation(owner, 4);
+      adjustContractReputation(partner, 4);
       logDeal("合同到期", `${spaceDisplayName(index)} 合作合同完成`, dividend, "coop");
+      showContractSettlementReport(contract, owner, partner);
     }
     changed = true;
   });
   if (changed) state.coopContracts = normalizeCoopContracts(contracts);
+}
+
+function contractSettlementSummary(contract, owner, partner) {
+  const partnerNet = Math.round((contract.totalPartnerPaid || 0) - (contract.upfront || 0));
+  const ownerNet = Math.round((contract.ownerReceipt ?? contract.upfront ?? 0) + (contract.totalOwnerPaid || 0));
+  const advice = partnerNet >= 0 ? "值得续约" : "谨慎续约";
+  return `${partner?.name || "合作方"}净收益 ${formatMoney(partnerNet)}，${owner?.name || "所有方"}收入 ${formatMoney(ownerNet)}，${advice}`;
+}
+
+function showContractSettlementReport(contract, owner, partner) {
+  if (!effectsLayer) return;
+  const report = document.createElement("div");
+  report.className = "contract-settlement-report";
+  const title = document.createElement("strong");
+  title.textContent = "合同到期结算";
+  const city = document.createElement("span");
+  city.textContent = spaceDisplayName(contract.propertyIndex);
+  const stats = document.createElement("p");
+  stats.textContent = contractSettlementSummary(contract, owner, partner);
+  const stamp = document.createElement("em");
+  stamp.textContent = (contract.totalPartnerPaid || 0) >= (contract.upfront || 0) ? "建议续约" : "重新谈判";
+  report.append(title, city, stats, stamp);
+  effectsLayer.appendChild(report);
+  window.setTimeout(() => report.remove(), 3200);
 }
 
 function breachCoopContractsForProperty(propertyIndex, ownerId, reason) {
@@ -10209,10 +10933,14 @@ function breachCoopContract(contract, reason) {
   contract.remainingRounds = 0;
   contract.endedRound = state.round;
   contract.breachReason = reason;
+  contract.settlement = `${reason}，赔付 ${formatMoney(paid)}；所有方信誉下降。`;
+  adjustContractReputation(owner, -8);
+  if (partner && !partner.bankrupt) adjustContractReputation(partner, 1);
   state.status = `${spaceDisplayName(contract.propertyIndex)} 合作合同违约：${reason}，赔付 ${formatMoney(paid)}。`;
   logEvent(`${spaceDisplayName(contract.propertyIndex)} 合作合同触发违约条款：${reason}。`);
   addNews("合作违约", `${spaceDisplayName(contract.propertyIndex)} 因${reason}触发违约金 ${formatMoney(paid)}。`, "debt");
   logDeal("合作违约", `${spaceDisplayName(contract.propertyIndex)} / ${reason}`, paid, "coop");
+  showContractAnimation("违约盖章", `${spaceDisplayName(contract.propertyIndex)} / ${reason} / ${formatMoney(paid)}`, "debt");
   showEventBurst("合作违约", "pay");
 }
 
