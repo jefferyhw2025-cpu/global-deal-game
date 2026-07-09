@@ -211,6 +211,31 @@ const languageDefinitions = {
     tickerDetails: (market, detail, name, owned, level) => `${market}：${detail} / ${name} 持有 ${owned} 座全球城市，最高 ${level} 级`,
     tickerReady: "准备开始新的城市竞赛",
     roundShort: (turns) => `${turns}轮`,
+    contractView: "查看合同",
+    contractSignCount: (count) => `签合同 ${count} 个`,
+    contractActiveCount: (count) => `合同 ${count} 份`,
+    contractOfferCount: (count) => `查看合同 ${count} 个`,
+    sideDeal: "交易",
+    sideDealDetail: "融资 / 报价 / 拍卖",
+    sideDealMarket: "市场",
+    sideDealAuction: "拍卖中",
+    sideDealShop: "商店",
+    sideCoop: "合同",
+    sideCoopDetail: "签约 / 分红 / 违约",
+    sideCoopSignable: (count) => `${count} 可签`,
+    sideCoopActive: (count) => `${count} 份`,
+    sidePlayer: "玩家",
+    sidePlayerDetail: "卡片 / 资产 / 银行",
+    sidePlayerCards: (count) => `${count} 张卡`,
+    sideWorld: "世界",
+    sideWorldDetail: "地图 / 股票 / 规则",
+    sideGoals: "任务",
+    sideGoalsDetail: "目标 / 存档 / 分享",
+    sideGoalsDone: (count) => `${count} 完成`,
+    sideLog: "记录",
+    sideLogDetail: "事件流水",
+    sideLogCount: (count) => `${count} 条`,
+    none: "暂无",
   },
   en: {
     htmlLang: "en",
@@ -312,6 +337,31 @@ const languageDefinitions = {
     tickerDetails: (market, detail, name, owned, level) => `${market}: ${detail} / ${name} owns ${owned} global cities, top level ${level}`,
     tickerReady: "Ready for a new city race",
     roundShort: (turns) => `${turns} turns`,
+    contractView: "Contracts",
+    contractSignCount: (count) => `Sign ${count}`,
+    contractActiveCount: (count) => `${count} Active`,
+    contractOfferCount: (count) => `View ${count}`,
+    sideDeal: "Deals",
+    sideDealDetail: "Finance / Bids / Auctions",
+    sideDealMarket: "Market",
+    sideDealAuction: "Auction",
+    sideDealShop: "Shop",
+    sideCoop: "Contracts",
+    sideCoopDetail: "Sign / Dividends / Breach",
+    sideCoopSignable: (count) => `${count} Ready`,
+    sideCoopActive: (count) => `${count} Active`,
+    sidePlayer: "Player",
+    sidePlayerDetail: "Cards / Assets / Bank",
+    sidePlayerCards: (count) => `${count} Cards`,
+    sideWorld: "World",
+    sideWorldDetail: "Map / Stocks / Rules",
+    sideGoals: "Goals",
+    sideGoalsDetail: "Targets / Saves / Share",
+    sideGoalsDone: (count) => `${count} Done`,
+    sideLog: "Log",
+    sideLogDetail: "Event Feed",
+    sideLogCount: (count) => `${count} Items`,
+    none: "None",
   },
   es: {
     htmlLang: "es",
@@ -413,7 +463,38 @@ const languageDefinitions = {
     tickerDetails: (market, detail, name, owned, level) => `${market}: ${detail} / ${name} tiene ${owned} ciudades, nivel ${level}`,
     tickerReady: "Listo para una nueva carrera",
     roundShort: (turns) => `${turns} rondas`,
+    contractView: "Contratos",
+    contractSignCount: (count) => `Firmar ${count}`,
+    contractActiveCount: (count) => `${count} activos`,
+    contractOfferCount: (count) => `Ver ${count}`,
+    sideDeal: "Tratos",
+    sideDealDetail: "Finanzas / Ofertas / Subastas",
+    sideDealMarket: "Mercado",
+    sideDealAuction: "Subasta",
+    sideDealShop: "Tienda",
+    sideCoop: "Contratos",
+    sideCoopDetail: "Firma / Dividendos / Incumplir",
+    sideCoopSignable: (count) => `${count} listos`,
+    sideCoopActive: (count) => `${count} activos`,
+    sidePlayer: "Jugador",
+    sidePlayerDetail: "Cartas / Activos / Banco",
+    sidePlayerCards: (count) => `${count} cartas`,
+    sideWorld: "Mundo",
+    sideWorldDetail: "Mapa / Acciones / Reglas",
+    sideGoals: "Metas",
+    sideGoalsDetail: "Objetivos / Guardar / Compartir",
+    sideGoalsDone: (count) => `${count} listas`,
+    sideLog: "Registro",
+    sideLogDetail: "Eventos",
+    sideLogCount: (count) => `${count} eventos`,
+    none: "Nada",
   },
+};
+
+const languageOptionLabels = {
+  zh: { zh: "中文", en: "English", es: "Español" },
+  en: { zh: "Chinese", en: "English", es: "Spanish" },
+  es: { zh: "Chino", en: "Inglés", es: "Español" },
 };
 
 const setupSelectLabels = {
@@ -2238,15 +2319,29 @@ encyclopediaBody.addEventListener("input", (event) => {
   }
 });
 
-render();
-window.setTimeout(maybeShowTutorialIntro, 260);
-
 function currentLanguage() {
-  return normalizeLanguage(state?.config?.language || "zh");
+  return languageFromUrl() || normalizeLanguage(state?.config?.language || "zh");
 }
 
 function normalizeLanguage(language) {
-  return languageDefinitions[language] ? language : "zh";
+  const value = String(language || "").trim().toLowerCase();
+  if (languageDefinitions[value]) return value;
+  if (value.startsWith("en")) return "en";
+  if (value.startsWith("es")) return "es";
+  if (value.startsWith("zh") || value.startsWith("cn")) return "zh";
+  return "zh";
+}
+
+function languageFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("lang") || params.get("language") || params.get("locale");
+    if (!value) return "";
+    const language = normalizeLanguage(value);
+    return languageDefinitions[language] ? language : "";
+  } catch {
+    return "";
+  }
 }
 
 function uiText(key, ...args) {
@@ -2340,12 +2435,14 @@ function renderStaticLabels() {
   panelTitle.textContent = uiTextForLanguage(language, "panelTitle");
   languageSelectLabel.textContent = uiTextForLanguage(language, "language");
   languageSelect.value = language;
+  updateSelectLabels(languageSelect, languageOptionLabels[language] || languageOptionLabels.zh);
 
   setupEyebrow.textContent = uiTextForLanguage(language, "newGame");
   setupTitle.textContent = uiTextForLanguage(language, "setupTitle");
   playerNameLabel.textContent = uiTextForLanguage(language, "playerName");
   setupLanguageLabel.textContent = uiTextForLanguage(language, "language");
   setupLanguageInput.value = language;
+  updateSelectLabels(setupLanguageInput, languageOptionLabels[language] || languageOptionLabels.zh);
   playerColorLabel.textContent = uiTextForLanguage(language, "playerColor");
   playerCountLabel.textContent = uiTextForLanguage(language, "playerCount");
   difficultyLabel.textContent = uiTextForLanguage(language, "difficulty");
@@ -2371,6 +2468,510 @@ function updateSelectLabels(select, labels) {
     option.textContent = labels[option.value] || option.textContent;
   });
 }
+
+const dynamicPhraseTranslations = {
+  en: {
+    "回合行动": "Turn Actions",
+    "掷骰 / 合同 / 结束": "Roll / Contracts / End",
+    "签合同": "Contracts",
+    "结束": "End",
+    "买地决策": "Buy Decision",
+    "购买 / 拍卖": "Buy / Auction",
+    "购买": "Buy",
+    "跳过": "Skip",
+    "工具建设": "Tools & Build",
+    "冒险 / 升级": "Venture / Upgrade",
+    "冒险": "Venture",
+    "升级": "Upgrade",
+    "交易": "Deals",
+    "融资 / 报价 / 拍卖": "Finance / Bids / Auctions",
+    "市场": "Market",
+    "合同": "Contracts",
+    "签约 / 分红 / 违约": "Sign / Dividends / Breach",
+    "玩家": "Player",
+    "卡片 / 资产 / 银行": "Cards / Assets / Bank",
+    "世界": "World",
+    "地图 / 股票 / 规则": "Map / Stocks / Rules",
+    "任务": "Goals",
+    "目标 / 存档 / 分享": "Targets / Saves / Share",
+    "记录": "Log",
+    "事件流水": "Event Feed",
+    "商业交易台": "Business Desk",
+    "对手拥有城市或手牌后，这里会出现报价。合作分红请去“合同”抽屉。": "Offers appear here after rivals own cities or cards. Use the Contracts drawer for dividend partnerships.",
+    "全球指数": "Global Index",
+    "地产指数": "Real Estate Index",
+    "股票指数": "Stock Index",
+    "融资利率": "Funding Rate",
+    "信用额度": "Credit Limit",
+    "组合市值": "Portfolio Value",
+    "融资 / 并购 / 债券": "Financing / M&A / Bonds",
+    "场外报价": "Private Offers",
+    "成交簿": "Deal Ledger",
+    "大额交易": "Major Deals",
+    "合同中心": "Contract Center",
+    "这里专门放合同：签约、分红、提前解约和违约条款都在这里处理。": "Contracts live here: signing, dividends, early exits, and breach terms are handled in one place.",
+    "现在是对手行动，但你可以先查看合同；轮到你行动时才能签新合同。": "It is a rival turn, but you can review contracts now. You can sign new contracts on your turn.",
+    "查看合同条件": "View Contract Terms",
+    "对手还没有城市，暂时不能签合同": "Rivals have no cities yet, so contracts are unavailable.",
+    "对手城市已抵押，不能签合同": "Rival cities are mortgaged, so contracts are unavailable.",
+    "合同签署台": "Contract Desk",
+    "合同列表": "Contract List",
+    "对手提案": "Rival Proposals",
+    "合同档案": "Contract Archive",
+    "怎么出现可签合同": "How to unlock contracts",
+    "公司合作合同": "Company Partnership Contract",
+    "可以起草正式合作合同": "Ready to draft a formal partnership contract",
+    "先查看合同格式和条件": "Review the contract form and terms first",
+    "打开后可选对方玩家名下的城市，查看合同价值、双方给付、违约金，并填写违约条款。你的商业信誉": "Open it to choose a rival-owned city, review contract value, payments, breach fee, and fill in breach terms. Your business reputation",
+    "对手买下城市后，这里会出现可选择的合同项目。你的商业信誉": "When rivals buy cities, contract projects will appear here. Your business reputation",
+    "打开合同签署台": "Open Contract Desk",
+    "现在还没有可签合同。看下面的条件提示，满足后这里会出现“签合同”。": "No signable contracts yet. Check the requirements below; once they are met, Sign Contract will appear here.",
+    "还没有完成、违约或解约的合同。": "No completed, breached, or terminated contracts yet.",
+    "暂时没有对手发来的合同提案。": "No rival contract proposals yet.",
+    "对手已经买下城市": "A rival owns a city",
+    "城市没有被抵押": "The city is not mortgaged",
+    "轮到你行动阶段": "It is your action phase",
+    "现金够付入场费": "Enough cash for the entry fee",
+    "签约后你先付入场费，之后每轮拿分红；如果城市被抵押、转手或所有方破产，会触发违约金。": "After signing, you pay an entry fee and receive dividends each round. Mortgaging, transferring, or owner bankruptcy triggers the breach fee.",
+    "名下区域": "owned zone",
+    "合作": "Partner With",
+    "合同价值": "Contract Value",
+    "你付": "You Pay",
+    "预计收": "Expected Income",
+    "违约金": "Breach Fee",
+    "预览合同": "Preview Contract",
+    "个合同待你同意": "contracts need your approval",
+    "个合同等对方同意": "contracts waiting for rival approval",
+    "个合同可签": "contracts ready",
+    "份合同分红中": "contracts paying dividends",
+    "个合同项目": "contract projects",
+    "对方发来的合同必须你同意后才会生效。": "Contracts sent by rivals only become active after you approve.",
+    "你提交的合同还没生效，必须等对方同意。": "Your submitted contract is waiting for rival approval.",
+    "先提交给对方确认；对方同意后才会扣款生效。": "Submit it for rival approval; payment happens only after approval.",
+    "查看分红、剩余轮数、提前解约和违约条款。": "Review dividends, remaining rounds, early exit, and breach terms.",
+    "进行中": "Active",
+    "已到期": "Completed",
+    "已违约": "Breached",
+    "已解约": "Terminated",
+    "归档": "Archived",
+    "你是合作方": "You are the partner",
+    "你是所有方": "You are the owner",
+    "合同已归档": "Contract archived",
+    "原所有者": "Original owner",
+    "合作方": "Partner",
+    "所有方": "Owner",
+    "剩": "Remaining",
+    "需要你同意": "Needs Your Approval",
+    "等待对方同意": "Waiting for Rival Approval",
+    "提案记录": "Proposal Record",
+    "对方收": "Rival Receives",
+    "给你": "Pays You",
+    "对方留": "Rival Keeps",
+    "违约": "Breach",
+    "已打开合作合同": "Contracts opened",
+    "已打开合同提案": "Contract proposals opened",
+    "个合同需要同意或等待对方同意": "contracts need approval or are waiting",
+    "个可签项目": "signable projects",
+    "份合同正在分红": "active dividend contracts",
+    "点“签合同”即可合作分红": "tap Contracts to start dividend cooperation",
+    "合同签署台": "Contract Desk",
+    "合作合同书": "Partnership Contract",
+    "公司合作合同起草": "Company Partnership Draft",
+    "等待合同项目": "Waiting for Contract Project",
+    "对手还没有可合作的城市。等对手买下城市后，这里会出现可签合同。": "Rivals do not have partnerable cities yet. Signable contracts will appear after they buy cities.",
+    "当前没有可签约玩家。": "No signable player right now.",
+    "暂无可签合同": "No signable contracts",
+    "合同编号": "Contract ID",
+    "签署回合": "Signing Round",
+    "合作分红": "Dividend Share",
+    "城市评级": "City Rating",
+    "合同模板": "Template",
+    "本合同由玩家填写条款": "Players fill in this contract",
+    "提交给": "submits to",
+    "审批": "for approval",
+    "只有": "Only after",
+    "同意后才会扣款并生成正式合同": "approves will payment happen and a formal contract be created",
+    "甲方 / 城市持有人": "Party A / City Holder",
+    "乙方 / 合作投资人": "Party B / Investing Partner",
+    "对方玩家，提供名下区域和经营分红": "Rival player provides the owned zone and operating dividends",
+    "你的玩家，支付入场费并获得分红权": "Your player pays the entry fee and receives dividend rights",
+    "你给对方": "You Give Rival",
+    "对方当下收到": "Rival Receives Now",
+    "对方给你 / 每轮": "Rival Pays You / Round",
+    "对方保留 / 每轮": "Rival Keeps / Round",
+    "合同期限 / 轮": "Term / Rounds",
+    "正式生效时从你现金扣除": "Deducted from your cash when active",
+    "同意后立即入账": "credited immediately after approval",
+    "按你填写的期限结算": "Settled for the term you enter",
+    "每轮保留收益": "keeps this income each round",
+    "触发违约条款时由违约方支付": "paid by the breaching party",
+    "违约条款 / 什么算违约": "Breach Terms / What Counts",
+    "填写违约条款，例如：抵押、转手、破产、提前解约如何赔付。": "Write breach terms, such as how mortgage, transfer, bankruptcy, or early exit pays out.",
+    "金额、期限和签名都可以自己填；提交后先给对方确认，只有对方同意后才会扣款并生成正式合同。": "You can fill in amounts, term, and signatures. Submit for rival approval first; payment and the formal contract happen only after approval.",
+    "现在不能签": "Cannot sign now",
+    "你仍可先查看合同内容和条款。": "You can still review the contract and terms.",
+    "谈判方案": "Negotiation Plan",
+    "标准合同：价格、分红、违约金平衡": "Standard: balanced price, dividends, and breach fee",
+    "提高入场费，换更高分红": "Raise entry fee for higher dividends",
+    "提高入场费，降低违约金": "Raise entry fee and lower breach fee",
+    "强势高分红，高入场费高风险": "Aggressive: high dividends, high entry, high risk",
+    "低入场费，低分红高违约约束": "Low entry, lower dividends, stricter breach terms",
+    "改变谈判方案会刷新合同价值、分红比例、违约金和顾问评分。": "Changing the plan refreshes contract value, dividend share, breach fee, and advisor score.",
+    "合同顾问": "Contract Advisor",
+    "风险等级": "Risk Level",
+    "城市模板": "City Template",
+    "预计回本": "Estimated Payback",
+    "综合现金压力、违约金、城市热度和信誉": "Based on cash pressure, breach fee, city heat, and reputation",
+    "预计总分红": "Estimated total dividends",
+    "小字条款": "Fine Print",
+    "甲方签名": "Party A Signature",
+    "乙方签名": "Party B Signature",
+    "玩家可填写签名": "Player can edit signature",
+    "签名线": "Signature line",
+    "待对方同意": "Awaiting Rival Approval",
+    "条件未满足": "Requirements Not Met",
+    "提交给对方确认": "Submit to Rival",
+    "提交给对方": "Submit to Rival",
+    "暂不能签": "Cannot Sign Yet",
+    "卡片 / 银行": "Cards / Bank",
+    "银行卡 / 融资": "Bank Card / Funding",
+    "角色技能": "Role Skill",
+    "手牌道具": "Hand Tools",
+    "地产拍卖": "Property Auction",
+    "卡片商店": "Card Shop",
+    "存档槽位": "Save Slots",
+    "任务 / 成就": "Goals / Badges",
+    "世界系统": "World Systems",
+    "联机分享码": "Share Code",
+    "资产 / 升级": "Assets / Upgrades",
+    "同意": "Accept",
+    "拒绝": "Decline",
+    "等待": "Waiting",
+    "未同意": "Rejected",
+    "提前解约": "End Early",
+    "续约": "Renew",
+    "打开签署台": "Open Contract Desk",
+    "查看签署台": "View Contract Desk",
+    "查看提案": "View Proposals",
+    "暂无": "None",
+    "空": "Empty",
+    "起草": "Draft",
+    "条件": "Rules",
+    "暂无可显示卡片。": "No cards to show.",
+    "暂无可显示资产。": "No assets to show.",
+    "还没有地产。": "No property yet.",
+    "暂无对手提案。": "No rival proposals.",
+    "暂无归档合同。": "No archived contracts.",
+    "等待掷骰": "Waiting to roll",
+    "待售": "For Sale",
+    "自有": "Owned",
+    "收租": "Rent",
+    "支出": "Pay",
+    "收益": "Income",
+    "商店": "Shop",
+    "事件": "Event",
+    "暂停": "Pause",
+    "地块": "Tile",
+  },
+  es: {
+    "回合行动": "Turno",
+    "掷骰 / 合同 / 结束": "Dados / Contratos / Fin",
+    "签合同": "Contratos",
+    "结束": "Fin",
+    "买地决策": "Comprar",
+    "购买 / 拍卖": "Comprar / Subasta",
+    "购买": "Comprar",
+    "跳过": "Pasar",
+    "工具建设": "Herramientas",
+    "冒险 / 升级": "Evento / Mejorar",
+    "冒险": "Evento",
+    "升级": "Mejorar",
+    "交易": "Tratos",
+    "融资 / 报价 / 拍卖": "Finanzas / Ofertas / Subastas",
+    "市场": "Mercado",
+    "合同": "Contratos",
+    "签约 / 分红 / 违约": "Firma / Dividendos / Incumplir",
+    "玩家": "Jugador",
+    "卡片 / 资产 / 银行": "Cartas / Activos / Banco",
+    "世界": "Mundo",
+    "地图 / 股票 / 规则": "Mapa / Acciones / Reglas",
+    "任务": "Metas",
+    "目标 / 存档 / 分享": "Objetivos / Guardar / Compartir",
+    "记录": "Registro",
+    "事件流水": "Eventos",
+    "商业交易台": "Mesa Comercial",
+    "对手拥有城市或手牌后，这里会出现报价。合作分红请去“合同”抽屉。": "Las ofertas aparecerán cuando los rivales tengan ciudades o cartas. Usa Contratos para dividendos.",
+    "全球指数": "Índice Global",
+    "地产指数": "Índice Inmobiliario",
+    "股票指数": "Índice Bursátil",
+    "融资利率": "Tasa",
+    "信用额度": "Crédito",
+    "组合市值": "Portafolio",
+    "融资 / 并购 / 债券": "Financiación / M&A / Bonos",
+    "场外报价": "Ofertas Privadas",
+    "成交簿": "Libro de Tratos",
+    "大额交易": "Grandes Tratos",
+    "合同中心": "Centro de Contratos",
+    "这里专门放合同：签约、分红、提前解约和违约条款都在这里处理。": "Los contratos viven aquí: firma, dividendos, salida anticipada e incumplimiento.",
+    "现在是对手行动，但你可以先查看合同；轮到你行动时才能签新合同。": "Ahora juega un rival, pero puedes revisar contratos. Podrás firmar en tu turno.",
+    "查看合同条件": "Ver Condiciones",
+    "对手还没有城市，暂时不能签合同": "Los rivales aún no tienen ciudades; no hay contratos.",
+    "对手城市已抵押，不能签合同": "Las ciudades rivales están hipotecadas; no hay contratos.",
+    "合同签署台": "Mesa de Contratos",
+    "合同列表": "Lista de Contratos",
+    "对手提案": "Propuestas Rivales",
+    "合同档案": "Archivo de Contratos",
+    "怎么出现可签合同": "Cómo desbloquear contratos",
+    "公司合作合同": "Contrato de Cooperación",
+    "可以起草正式合作合同": "Listo para redactar un contrato formal",
+    "先查看合同格式和条件": "Revisa el formato y las condiciones",
+    "打开后可选对方玩家名下的城市，查看合同价值、双方给付、违约金，并填写违约条款。你的商业信誉": "Ábrelo para elegir una ciudad rival, ver valor, pagos, penalización y escribir términos. Tu reputación",
+    "对手买下城市后，这里会出现可选择的合同项目。你的商业信誉": "Cuando los rivales compren ciudades, aparecerán proyectos. Tu reputación",
+    "打开合同签署台": "Abrir Mesa de Contratos",
+    "现在还没有可签合同。看下面的条件提示，满足后这里会出现“签合同”。": "Aún no hay contratos. Revisa los requisitos; al cumplirlos aparecerá Firmar.",
+    "还没有完成、违约或解约的合同。": "No hay contratos completados, incumplidos o terminados.",
+    "暂时没有对手发来的合同提案。": "No hay propuestas rivales.",
+    "对手已经买下城市": "Un rival tiene una ciudad",
+    "城市没有被抵押": "La ciudad no está hipotecada",
+    "轮到你行动阶段": "Es tu fase de acción",
+    "现金够付入场费": "Hay efectivo para la entrada",
+    "签约后你先付入场费，之后每轮拿分红；如果城市被抵押、转手或所有方破产，会触发违约金。": "Al firmar pagas entrada y cobras dividendos cada ronda. Hipoteca, venta o quiebra activa penalización.",
+    "名下区域": "zona propia",
+    "合作": "Cooperar Con",
+    "合同价值": "Valor",
+    "你付": "Pagas",
+    "预计收": "Ingreso Est.",
+    "违约金": "Penalización",
+    "预览合同": "Vista Previa",
+    "个合同待你同意": "contratos requieren tu aprobación",
+    "个合同等对方同意": "contratos esperan aprobación rival",
+    "个合同可签": "contratos listos",
+    "份合同分红中": "contratos con dividendos",
+    "个合同项目": "proyectos",
+    "对方发来的合同必须你同意后才会生效。": "Los contratos rivales solo se activan con tu aprobación.",
+    "你提交的合同还没生效，必须等对方同意。": "Tu contrato espera aprobación rival.",
+    "先提交给对方确认；对方同意后才会扣款生效。": "Envíalo al rival; el pago ocurre solo tras aprobación.",
+    "查看分红、剩余轮数、提前解约和违约条款。": "Revisa dividendos, rondas, salida e incumplimiento.",
+    "进行中": "Activo",
+    "已到期": "Completado",
+    "已违约": "Incumplido",
+    "已解约": "Terminado",
+    "归档": "Archivado",
+    "你是合作方": "Eres socio",
+    "你是所有方": "Eres dueño",
+    "合同已归档": "Contrato archivado",
+    "原所有者": "Dueño original",
+    "合作方": "Socio",
+    "所有方": "Dueño",
+    "剩": "Quedan",
+    "需要你同意": "Necesita Tu Aprobación",
+    "等待对方同意": "Esperando Rival",
+    "提案记录": "Registro de Propuesta",
+    "对方收": "Rival Recibe",
+    "给你": "Te Paga",
+    "对方留": "Rival Conserva",
+    "违约": "Incumplir",
+    "已打开合作合同": "Contratos abiertos",
+    "已打开合同提案": "Propuestas abiertas",
+    "个合同需要同意或等待对方同意": "contratos requieren o esperan aprobación",
+    "个可签项目": "proyectos firmables",
+    "份合同正在分红": "contratos activos",
+    "点“签合同”即可合作分红": "toca Contratos para cooperar con dividendos",
+    "合作合同书": "Contrato de Cooperación",
+    "公司合作合同起草": "Borrador de Cooperación",
+    "等待合同项目": "Esperando Proyecto",
+    "对手还没有可合作的城市。等对手买下城市后，这里会出现可签合同。": "Los rivales no tienen ciudades cooperables. Aparecerán al comprar ciudades.",
+    "当前没有可签约玩家。": "No hay jugador disponible.",
+    "暂无可签合同": "No hay contratos",
+    "合同编号": "ID",
+    "签署回合": "Ronda",
+    "合作分红": "Dividendos",
+    "城市评级": "Rating",
+    "合同模板": "Plantilla",
+    "本合同由玩家填写条款": "Los jugadores llenan este contrato",
+    "提交给": "envía a",
+    "审批": "para aprobar",
+    "只有": "Solo si",
+    "同意后才会扣款并生成正式合同": "aprueba, se cobra y se crea el contrato",
+    "甲方 / 城市持有人": "Parte A / Dueño",
+    "乙方 / 合作投资人": "Parte B / Inversor",
+    "对方玩家，提供名下区域和经营分红": "Rival ofrece zona y dividendos",
+    "你的玩家，支付入场费并获得分红权": "Tu jugador paga entrada y cobra dividendos",
+    "你给对方": "Das al Rival",
+    "对方当下收到": "Rival Recibe Ahora",
+    "对方给你 / 每轮": "Rival Te Paga / Ronda",
+    "对方保留 / 每轮": "Rival Guarda / Ronda",
+    "合同期限 / 轮": "Duración / Rondas",
+    "正式生效时从你现金扣除": "Se descuenta al activarse",
+    "同意后立即入账": "se acredita al aprobar",
+    "按你填写的期限结算": "según la duración escrita",
+    "每轮保留收益": "conserva cada ronda",
+    "触发违约条款时由违约方支付": "paga quien incumple",
+    "违约条款 / 什么算违约": "Términos / Incumplimiento",
+    "填写违约条款，例如：抵押、转手、破产、提前解约如何赔付。": "Escribe términos: hipoteca, venta, quiebra o salida anticipada.",
+    "金额、期限和签名都可以自己填；提交后先给对方确认，只有对方同意后才会扣款并生成正式合同。": "Puedes llenar montos, duración y firmas. Se envía al rival; solo con aprobación se cobra.",
+    "现在不能签": "No se puede firmar",
+    "你仍可先查看合同内容和条款。": "Puedes revisar el contrato.",
+    "谈判方案": "Negociación",
+    "标准合同：价格、分红、违约金平衡": "Estándar: precio, dividendos y penalización equilibrados",
+    "提高入场费，换更高分红": "Más entrada por más dividendos",
+    "提高入场费，降低违约金": "Más entrada y menor penalización",
+    "强势高分红，高入场费高风险": "Agresivo: alto dividendo y alto riesgo",
+    "低入场费，低分红高违约约束": "Baja entrada, bajo dividendo, más restricciones",
+    "改变谈判方案会刷新合同价值、分红比例、违约金和顾问评分。": "Cambiar plan recalcula valor, dividendos, penalización y asesor.",
+    "合同顾问": "Asesor",
+    "风险等级": "Riesgo",
+    "城市模板": "Plantilla",
+    "预计回本": "Retorno Est.",
+    "综合现金压力、违约金、城市热度和信誉": "Según efectivo, penalización, ciudad y reputación",
+    "预计总分红": "Dividendos estimados",
+    "小字条款": "Letra Pequeña",
+    "甲方签名": "Firma Parte A",
+    "乙方签名": "Firma Parte B",
+    "玩家可填写签名": "Firma editable",
+    "签名线": "Línea de firma",
+    "待对方同意": "Esperando Aprobación",
+    "条件未满足": "Faltan Requisitos",
+    "提交给对方确认": "Enviar al Rival",
+    "提交给对方": "Enviar al Rival",
+    "暂不能签": "No Firmable",
+    "卡片 / 银行": "Cartas / Banco",
+    "银行卡 / 融资": "Tarjeta / Fondos",
+    "角色技能": "Habilidad",
+    "手牌道具": "Herramientas",
+    "地产拍卖": "Subasta",
+    "卡片商店": "Tienda de Cartas",
+    "存档槽位": "Guardados",
+    "任务 / 成就": "Metas / Logros",
+    "世界系统": "Sistemas",
+    "联机分享码": "Código",
+    "资产 / 升级": "Activos / Mejoras",
+    "同意": "Aceptar",
+    "拒绝": "Rechazar",
+    "等待": "Esperando",
+    "未同意": "Rechazado",
+    "提前解约": "Terminar",
+    "续约": "Renovar",
+    "打开签署台": "Abrir Contratos",
+    "查看签署台": "Ver Contratos",
+    "查看提案": "Ver Propuestas",
+    "暂无": "Nada",
+    "空": "Vacío",
+    "起草": "Borrador",
+    "条件": "Reglas",
+    "暂无可显示卡片。": "No hay cartas.",
+    "暂无可显示资产。": "No hay activos.",
+    "还没有地产。": "Sin propiedades.",
+    "暂无对手提案。": "Sin propuestas rivales.",
+    "暂无归档合同。": "Sin contratos archivados.",
+    "等待掷骰": "Esperando dados",
+    "待售": "En Venta",
+    "自有": "Propio",
+    "收租": "Renta",
+    "支出": "Pago",
+    "收益": "Ingreso",
+    "商店": "Tienda",
+    "事件": "Evento",
+    "暂停": "Pausa",
+    "地块": "Casilla",
+  },
+};
+
+function translateDynamicText(text, language = currentLanguage()) {
+  if (language === "zh" || !text || !/[\u4e00-\u9fff]/.test(text)) return text;
+  const pack = dynamicPhraseTranslations[language] || {};
+  const trimmed = text.trim();
+  let translated = pack[trimmed] || "";
+  if (!translated) {
+    translated = trimmed
+      .replace(/^(.+) 的卡片$/, language === "es" ? "Cartas de $1" : "$1's Cards")
+      .replace(/^(.+) 的资产$/, language === "es" ? "Activos de $1" : "$1's Assets")
+      .replace(/^(.+) 当前地块$/, language === "es" ? "Casilla actual de $1" : "$1's Current Tile")
+      .replace(/^轮到 (.+)[，,]\s*准备掷骰[。.]?$/, language === "es" ? "Turno de $1. Tira los dados." : "$1's turn. Roll the dice.")
+      .replace(/^(.+) 名下区域$/, language === "es" ? "Zona de $1" : "$1's Zone")
+      .replace(/^合作 (.+)$/, language === "es" ? "Cooperar con $1" : "Partner With $1")
+      .replace(/^(.+) 合作合同书$/, language === "es" ? "Contrato de cooperación de $1" : "$1 Partnership Contract")
+      .replace(/^(.+) 合同价值 (¥?[\d,]+)$/, language === "es" ? "$1 valor $2" : "$1 value $2")
+      .replace(/^(\d+) 张卡$/, language === "es" ? "$1 cartas" : "$1 Cards")
+      .replace(/^(\d+) 完成$/, language === "es" ? "$1 listas" : "$1 Done")
+      .replace(/^(\d+) 条$/, language === "es" ? "$1 eventos" : "$1 Items")
+      .replace(/^(\d+) 可签$/, language === "es" ? "$1 listos" : "$1 Ready")
+      .replace(/^(\d+) 份$/, language === "es" ? "$1 activos" : "$1 Active")
+      .replace(/^(\d+) 座$/, language === "es" ? "$1 ciudades" : "$1 Cities")
+      .replace(/^(\d+) 份进行中$/, language === "es" ? "$1 activos" : "$1 Active")
+      .replace(/^(\d+) 个可签$/, language === "es" ? "$1 firmables" : "$1 Signable")
+      .replace(/^(\d+) 轮$/, language === "es" ? "$1 rondas" : "$1 Rounds")
+      .replace(/^(\d+) 个项目$/, language === "es" ? "$1 proyectos" : "$1 Projects")
+      .replace(/^(\d+) 个报价$/, language === "es" ? "$1 ofertas" : "$1 Offers")
+      .replace(/^第 (\d+) 轮$/, language === "es" ? "Ronda $1" : "Round $1");
+  }
+  if (!translated || translated === trimmed) {
+    translated = replaceKnownChineseFragments(trimmed, language);
+  }
+  if (!translated || translated === trimmed) return text;
+  return text.replace(trimmed, translated);
+}
+
+function replaceKnownChineseFragments(text, language = currentLanguage()) {
+  const phrasePack = dynamicPhraseTranslations[language] || {};
+  const namePack = displayNameTranslations[language] || {};
+  let next = String(text || "");
+  const replacements = [
+    ...Object.entries(phrasePack),
+    ...Object.entries(namePack),
+    ...Object.entries(regionTranslations[language] || {}),
+    ...Object.entries(countryTranslations[language] || {}),
+  ]
+    .filter(([from, to]) => from && to && from.length > 1)
+    .sort((a, b) => b[0].length - a[0].length);
+  replacements.forEach(([from, to]) => {
+    if (next.includes(from)) next = next.split(from).join(to);
+  });
+  return normalizeLocalizedPunctuation(next);
+}
+
+function normalizeLocalizedPunctuation(text) {
+  return String(text || "")
+    .replace(/：/g, ": ")
+    .replace(/，/g, ", ")
+    .replace(/。/g, ".")
+    .replace(/；/g, "; ")
+    .replace(/、/g, " / ")
+    .replace(/[“”]/g, "\"")
+    .replace(/\.\.+/g, ".")
+    .replace(/\s+([.,;:])/g, "$1")
+    .replace(/\s{2,}/g, " ");
+}
+
+function applyDynamicLanguagePatches() {
+  const language = currentLanguage();
+  if (language === "zh") return;
+  const scopes = [
+    boardEl,
+    panelTabs,
+    document.querySelector(".side-panel"),
+    document.querySelector(".action-bar"),
+    statusLine,
+    currentTileCard,
+    cityTicker,
+    contractDialog,
+    propertyDialog,
+    winnerDialog,
+    tutorialDialog,
+  ].filter(Boolean);
+  scopes.forEach((scope) => {
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach((node) => {
+      const next = translateDynamicText(node.nodeValue, language);
+      if (next !== node.nodeValue) node.nodeValue = next;
+    });
+  });
+}
+
+render();
+window.setTimeout(maybeShowTutorialIntro, 260);
 
 function updateDifficultyHint() {
   if (!difficultyHint || !difficultyInput) return;
@@ -2838,6 +3439,7 @@ function render() {
   renderLog();
   roundCounter.textContent = uiText("round", state.round);
   statusLine.textContent = state.status;
+  applyDynamicLanguagePatches();
   saveGame();
   scheduleAutomation();
   renderWinnerDialog();
@@ -3047,57 +3649,57 @@ function sidePanelDrawerDefinitions() {
   return [
     {
       id: "deal",
-      label: "交易",
-      detail: "融资 / 报价 / 拍卖",
+      label: uiText("sideDeal"),
+      detail: uiText("sideDealDetail"),
       icon: "chart",
-      meta: () => state.phase === "auction" ? "拍卖中" : state.phase === "shop" ? "商店" : "市场",
+      meta: () => state.phase === "auction" ? uiText("sideDealAuction") : state.phase === "shop" ? uiText("sideDealShop") : uiText("sideDealMarket"),
       panels: () => [tradePanel, auctionPanel, shopPanel],
     },
     {
       id: "coop",
-      label: "合同",
-      detail: "签约 / 分红 / 违约",
+      label: uiText("sideCoop"),
+      detail: uiText("sideCoopDetail"),
       icon: "shield",
       meta: () => {
         const player = humanPlayer() || current;
-        if (!player) return "合同";
+        if (!player) return uiText("sideCoop");
         const summary = contractHubSummary(player);
-        if (summary.signable) return `${summary.signable} 可签`;
-        if (summary.active) return `${summary.active} 份`;
-        return "合同";
+        if (summary.signable) return uiText("sideCoopSignable", summary.signable);
+        if (summary.active) return uiText("sideCoopActive", summary.active);
+        return uiText("sideCoop");
       },
       panels: () => [coopPanel],
     },
     {
       id: "player",
-      label: "玩家",
-      detail: "卡片 / 资产 / 银行",
+      label: uiText("sidePlayer"),
+      detail: uiText("sidePlayerDetail"),
       icon: "card",
-      meta: () => current ? `${current.cards.length} 张卡` : "暂无",
+      meta: () => current ? uiText("sidePlayerCards", current.cards.length) : uiText("none"),
       panels: () => [playersPanel, cardsPanel, assetsPanel],
     },
     {
       id: "world",
-      label: "世界",
-      detail: "地图 / 股票 / 规则",
+      label: uiText("sideWorld"),
+      detail: uiText("sideWorldDetail"),
       icon: "map",
       meta: () => `${state.cityCollection?.length || 0}/100`,
       panels: () => [worldPanel],
     },
     {
       id: "goals",
-      label: "任务",
-      detail: "目标 / 存档 / 分享",
+      label: uiText("sideGoals"),
+      detail: uiText("sideGoalsDetail"),
       icon: "trophy",
-      meta: () => `${current?.completedTasks?.length || 0} 完成`,
+      meta: () => uiText("sideGoalsDone", current?.completedTasks?.length || 0),
       panels: () => [progressPanel, savePanel, sharePanel],
     },
     {
       id: "log",
-      label: "记录",
-      detail: "事件流水",
+      label: uiText("sideLog"),
+      detail: uiText("sideLogDetail"),
       icon: "news",
-      meta: () => `${state.log?.length || 0} 条`,
+      meta: () => uiText("sideLogCount", state.log?.length || 0),
       panels: () => [logPanel],
     },
   ];
@@ -5107,7 +5709,13 @@ function renderControls() {
         : "";
 
   setMainActionButton(contractButton, {
-    label: signableCoopCount ? `签合同 ${signableCoopCount} 个` : activeCoopCount ? `合同 ${activeCoopCount} 份` : coopOffers.length ? `查看合同 ${coopOffers.length} 个` : "查看合同",
+    label: signableCoopCount
+      ? uiText("contractSignCount", signableCoopCount)
+      : activeCoopCount
+        ? uiText("contractActiveCount", activeCoopCount)
+        : coopOffers.length
+          ? uiText("contractOfferCount", coopOffers.length)
+          : uiText("contractView"),
     disabled: !canViewContracts,
     reason: coopShortcutReason(contractViewer),
     tone: signableCoopCount ? "gain" : "move",
