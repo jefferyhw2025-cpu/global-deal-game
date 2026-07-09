@@ -3245,6 +3245,82 @@ h2 {
   grid-template-columns: 1fr;
 }
 
+.coop-proposal-card {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 1.4fr) 92px;
+  align-items: stretch;
+}
+
+.proposal-contract-view {
+  border-left: 1px solid rgba(15, 131, 151, 0.16);
+  padding: 12px;
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(232, 248, 250, 0.42));
+}
+
+.proposal-contract-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.proposal-contract-heading strong {
+  color: var(--charcoal);
+  font-size: 0.74rem;
+  font-weight: 950;
+}
+
+.proposal-contract-heading span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.proposal-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.proposal-contract-grid article {
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 7px;
+  min-width: 0;
+}
+
+.proposal-contract-grid small,
+.proposal-contract-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.proposal-contract-grid strong {
+  display: block;
+  color: var(--charcoal);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1.25;
+  margin: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.proposal-contract-note {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 0;
+}
+
 .proposal-actions button {
   min-height: 50%;
   border-width: 0 0 1px 1px;
@@ -6169,6 +6245,29 @@ h2 {
 
   .contract-draft-desk button {
     width: 100%;
+  }
+
+  .coop-proposal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .proposal-contract-view {
+    border-left: 0;
+    border-top: 1px solid rgba(15, 131, 151, 0.16);
+  }
+
+  .proposal-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  .proposal-actions button {
+    min-height: 42px;
+    border-width: 1px 0 0;
+  }
+
+  .proposal-actions button + button {
+    border-left: 1px solid rgba(34, 48, 66, 0.12);
   }
 
   .asset-item {

@@ -515,6 +515,107 @@ const mainActionDrawerCopy = {
   },
 };
 
+const marketCopy = {
+  en: {
+    steady: ["Steady Market", "Cities operating normally"],
+    boom: ["Property Boom", "Land prices and rent are rising"],
+    slump: ["Value Entry", "Cities are cheaper and rent cools"],
+    cardRush: ["Card Rush", "Shop cards are discounted"],
+    rentStorm: ["Rent Storm", "Rent swings sharply"],
+    storm: ["Rainstorm", "Tourism city rent falls"],
+    crisis: ["Financial Crisis", "Land prices drop and rent is pressured"],
+    goldenWeek: ["Golden Week", "Tourism city rent jumps"],
+    stockCrash: ["Stock Shock", "City stock prices crash"],
+  },
+  es: {
+    steady: ["Mercado Estable", "Las ciudades operan con normalidad"],
+    boom: ["Auge Inmobiliario", "Suben terrenos y rentas"],
+    slump: ["Entrada Barata", "Comprar es barato y baja la renta"],
+    cardRush: ["Fiebre de Cartas", "Cartas de tienda con descuento"],
+    rentStorm: ["Tormenta de Renta", "La renta fluctua fuerte"],
+    storm: ["Tormenta", "Baja la renta turistica"],
+    crisis: ["Crisis Financiera", "Bajan precios y rentas"],
+    goldenWeek: ["Semana Dorada", "Sube la renta turistica"],
+    stockCrash: ["Caida Bursatil", "Caen las acciones urbanas"],
+  },
+};
+
+const indexMoodCopy = {
+  en: {
+    strong: "Strong",
+    active: "Active",
+    watch: "Watching",
+    hot: "Hot",
+    low: "Low",
+    chase: "Chasing",
+    volatile: "Volatile",
+    weak: "Weak",
+  },
+  es: {
+    strong: "Fuerte",
+    active: "Activo",
+    watch: "En espera",
+    hot: "Caliente",
+    low: "Bajo",
+    chase: "Al alza",
+    volatile: "Volatil",
+    weak: "Debil",
+  },
+};
+
+const boardMetaCopy = {
+  en: { rent: "Rent", draw: "Draw", shop: "Shop", rest: "Rest", stop: "Stop 1 Turn", atlas: "Atlas", realEstate: "Real Estate", stock: "Stocks" },
+  es: { rent: "Renta", draw: "Robar", shop: "Tienda", rest: "Descanso", stop: "Pierde 1 Turno", atlas: "Atlas", realEstate: "Inmuebles", stock: "Acciones" },
+};
+
+const atlasCopy = {
+  zh: {
+    search: "搜索城市、洲、地标或产业",
+    level: "级",
+    score: "分",
+    collected: "已收藏",
+    notCollected: "未收藏",
+    locked: "未解锁",
+    stockPrice: "股价",
+    company: "公司",
+    notBuilt: "未建设",
+    ipo: "已IPO",
+    notIpo: "未IPO",
+    specialNote: "特殊地点会改变移动、市场、现金或手牌节奏。",
+    noMatch: "没有找到匹配城市。",
+  },
+  en: {
+    search: "Search cities, continents, landmarks, or industries",
+    level: "level",
+    score: "pts",
+    collected: "Collected",
+    notCollected: "Not Collected",
+    locked: "Locked",
+    stockPrice: "Stock",
+    company: "Company",
+    notBuilt: "Not Built",
+    ipo: "IPO",
+    notIpo: "Not IPO",
+    specialNote: "Special tiles change movement, markets, cash, or card tempo.",
+    noMatch: "No matching city found.",
+  },
+  es: {
+    search: "Buscar ciudades, continentes, hitos o sectores",
+    level: "nivel",
+    score: "pts",
+    collected: "Coleccionada",
+    notCollected: "No coleccionada",
+    locked: "Bloqueada",
+    stockPrice: "Acción",
+    company: "Empresa",
+    notBuilt: "Sin construir",
+    ipo: "IPO",
+    notIpo: "Sin IPO",
+    specialNote: "Las casillas especiales cambian movimiento, mercado, efectivo o cartas.",
+    noMatch: "No se encontró ninguna ciudad.",
+  },
+};
+
 const setupSelectLabels = {
   zh: {
     playerCount: { 2: "2 人", 3: "3 人", 4: "4 人" },
@@ -1059,6 +1160,11 @@ const companyTypeDefinitions = {
   hotel: { label: "酒店", detail: "旅游和租金收益增强。", icon: "spark", tone: "gain" },
   bank: { label: "银行", detail: "贷款利率下降，信用额度提升。", icon: "coin", tone: "buy" },
   techPark: { label: "科技园", detail: "股票热度和研发收益上升。", icon: "chart", tone: "build" },
+};
+
+const companyTypeLabels = {
+  en: { company: "Company", hotel: "Hotel", bank: "Bank", techPark: "Tech Park" },
+  es: { company: "Empresa", hotel: "Hotel", bank: "Banco", techPark: "Parque Tech" },
 };
 
 const rulesPresetDefinitions = {
@@ -2496,6 +2602,16 @@ function renderStaticLabels() {
   startGameButton.textContent = uiTextForLanguage(language, "start");
   newGameButton.setAttribute("aria-label", uiTextForLanguage(language, "newGame"));
   newGameButton.title = uiTextForLanguage(language, "newGame");
+  const encyclopediaEyebrow = encyclopediaDialog?.querySelector(".eyebrow");
+  const encyclopediaTitle = encyclopediaDialog?.querySelector("h2");
+  if (encyclopediaEyebrow) {
+    encyclopediaEyebrow.textContent = language === "es" ? "Atlas Mundial" : "World Atlas";
+  }
+  if (encyclopediaTitle) {
+    encyclopediaTitle.textContent = translateDynamicText("城市图鉴", language);
+  }
+  closeEncyclopediaButton?.setAttribute("aria-label", translateDynamicText("关闭城市图鉴", language));
+  closeEncyclopediaButton?.setAttribute("title", translateDynamicText("关闭", language));
   renderMainActionDrawerLabels();
   if (tutorialDialog?.open) renderTutorialIntro();
 }
@@ -2712,6 +2828,28 @@ const dynamicPhraseTranslations = {
     "暂无对手提案。": "No rival proposals.",
     "暂无归档合同。": "No archived contracts.",
     "等待掷骰": "Waiting to roll",
+    "抽卡": "Draw",
+    "买卡": "Shop",
+    "休息": "Rest",
+    "停一轮": "Stop 1 Turn",
+    "租": "Rent",
+    "图鉴": "Atlas",
+    "地产": "Real Estate",
+    "股票": "Stocks",
+    "平稳市场": "Steady Market",
+    "城市运转正常": "Cities operating normally",
+    "双方可见合同内容": "Contract Contents Visible to Both Sides",
+    "甲方": "Party A",
+    "乙方": "Party B",
+    "签署城市": "Contract City",
+    "乙方付甲方": "Party B Pays Party A",
+    "甲方当下收到": "Party A Receives Now",
+    "甲方给乙方 / 每轮": "Party A Pays Party B / Round",
+    "甲方保留 / 每轮": "Party A Keeps / Round",
+    "违约条款": "Breach Terms",
+    "签名": "Signature",
+    "发起方": "Proposer",
+    "审批方": "Approver",
     "待售": "For Sale",
     "自有": "Owned",
     "收租": "Rent",
@@ -2721,6 +2859,43 @@ const dynamicPhraseTranslations = {
     "事件": "Event",
     "暂停": "Pause",
     "地块": "Tile",
+    "城市图鉴": "City Atlas",
+    "关闭城市图鉴": "Close City Atlas",
+    "关闭": "Close",
+    "这里保留融资、并购、债券和场外报价；合同入口固定在下方，也可以去右侧“合同”抽屉查看。": "Financing, M&A, bonds, and private offers stay here; contract access is fixed below, and the Contracts drawer on the right also shows it.",
+    "可用": "Available",
+    "种子": "Seed",
+    "A轮": "Series A",
+    "B轮": "Series B",
+    "C轮": "Series C",
+    "后续": "Follow-on",
+    "股权融资": "Equity Financing",
+    "股权路演": "Equity Roadshow",
+    "机构注资": "Institutional capital",
+    "城市估值上升": "city valuation rises",
+    "但集团股权稀释约": "group equity diluted by about",
+    "杠杆融资": "Leveraged Financing",
+    "资金杠杆": "capital leverage",
+    "可追加": "Add",
+    "交易资金": "deal capital",
+    "年化利率": "annual rate",
+    "会推高风险指数": "raises the risk index",
+    "可转债融资": "Convertible Financing",
+    "发行可转债": "Issue convertible debt",
+    "获得": "Receive",
+    "利率": "rate",
+    "之后可债转股降低债务": "convert later to reduce debt",
+    "发债": "Issue Debt",
+    "城市债券": "City Bond",
+    "发行城市建设债": "Issue City Development Bond",
+    "以资产组合信用融资": "portfolio-backed financing",
+    "债务": "debt",
+    "发行": "Issue",
+    "甲方收到": "Party A receives",
+    "甲方给乙方": "Party A pays Party B",
+    "甲方保留": "Party A keeps",
+    "提案": "proposal",
+    "违约": "breach",
   },
   es: {
     "回合行动": "Turno",
@@ -2914,6 +3089,28 @@ const dynamicPhraseTranslations = {
     "暂无对手提案。": "Sin propuestas rivales.",
     "暂无归档合同。": "Sin contratos archivados.",
     "等待掷骰": "Esperando dados",
+    "抽卡": "Robar",
+    "买卡": "Tienda",
+    "休息": "Descanso",
+    "停一轮": "Pierde 1 Turno",
+    "租": "Renta",
+    "图鉴": "Atlas",
+    "地产": "Inmuebles",
+    "股票": "Acciones",
+    "平稳市场": "Mercado Estable",
+    "城市运转正常": "Las ciudades operan con normalidad",
+    "双方可见合同内容": "Contenido Visible Para Ambas Partes",
+    "甲方": "Parte A",
+    "乙方": "Parte B",
+    "签署城市": "Ciudad",
+    "乙方付甲方": "Parte B paga a Parte A",
+    "甲方当下收到": "Parte A recibe ahora",
+    "甲方给乙方 / 每轮": "Parte A paga a Parte B / Ronda",
+    "甲方保留 / 每轮": "Parte A conserva / Ronda",
+    "违约条款": "Incumplimiento",
+    "签名": "Firma",
+    "发起方": "Proponente",
+    "审批方": "Aprobador",
     "待售": "En Venta",
     "自有": "Propio",
     "收租": "Renta",
@@ -2923,6 +3120,43 @@ const dynamicPhraseTranslations = {
     "事件": "Evento",
     "暂停": "Pausa",
     "地块": "Casilla",
+    "城市图鉴": "Atlas de Ciudades",
+    "关闭城市图鉴": "Cerrar Atlas",
+    "关闭": "Cerrar",
+    "这里保留融资、并购、债券和场外报价；合同入口固定在下方，也可以去右侧“合同”抽屉查看。": "Financiación, fusiones, bonos y ofertas privadas se quedan aquí; el acceso a contratos está abajo y también en el cajón de Contratos.",
+    "可用": "disponibles",
+    "种子": "Semilla",
+    "A轮": "Ronda A",
+    "B轮": "Ronda B",
+    "C轮": "Ronda C",
+    "后续": "Seguimiento",
+    "股权融资": "Financiación de capital",
+    "股权路演": "Roadshow de capital",
+    "机构注资": "Capital institucional",
+    "城市估值上升": "sube la valoración urbana",
+    "但集团股权稀释约": "dilución del grupo aprox.",
+    "杠杆融资": "Financiación apalancada",
+    "资金杠杆": "apalancamiento de capital",
+    "可追加": "Añade",
+    "交易资金": "capital para tratos",
+    "年化利率": "tasa anual",
+    "会推高风险指数": "sube el índice de riesgo",
+    "可转债融资": "Financiación convertible",
+    "发行可转债": "Emitir deuda convertible",
+    "获得": "Recibe",
+    "利率": "tasa",
+    "之后可债转股降低债务": "puede convertirse para reducir deuda",
+    "发债": "Emitir deuda",
+    "城市债券": "Bono urbano",
+    "发行城市建设债": "Emitir bono urbano",
+    "以资产组合信用融资": "financiación respaldada por cartera",
+    "债务": "deuda",
+    "发行": "Emitir",
+    "甲方收到": "Parte A recibe",
+    "甲方给乙方": "Parte A paga a Parte B",
+    "甲方保留": "Parte A conserva",
+    "提案": "propuesta",
+    "违约": "incumplimiento",
   },
 };
 
@@ -2952,6 +3186,13 @@ function translateDynamicText(text, language = currentLanguage()) {
       .replace(/^(\d+) 轮$/, language === "es" ? "$1 rondas" : "$1 Rounds")
       .replace(/^(\d+) 个项目$/, language === "es" ? "$1 proyectos" : "$1 Projects")
       .replace(/^(\d+) 个报价$/, language === "es" ? "$1 ofertas" : "$1 Offers")
+      .replace(/^(\d+) 可用$/, language === "es" ? "$1 disponibles" : "$1 Available")
+      .replace(/^(\d+) 个$/, language === "es" ? "$1 elementos" : "$1 Items")
+      .replace(/^融 (¥[\d,]+)$/, language === "es" ? "Financiar $1" : "Raise $1")
+      .replace(/^开 ([\d.]+x) 资金杠杆$/, language === "es" ? "Abrir apalancamiento $1" : "Open $1 leverage")
+      .replace(/^杠杆 (¥[\d,]+)$/, language === "es" ? "Apalancar $1" : "Leverage $1")
+      .replace(/^发债 (¥[\d,]+)$/, language === "es" ? "Emitir $1" : "Issue $1")
+      .replace(/^发行 (¥[\d,]+)$/, language === "es" ? "Emitir $1" : "Issue $1")
       .replace(/^第 (\d+) 轮$/, language === "es" ? "Ronda $1" : "Round $1");
   }
   if (!translated || translated === trimmed) {
@@ -3002,6 +3243,8 @@ function applyDynamicLanguagePatches() {
     statusLine,
     currentTileCard,
     cityTicker,
+    worldMap,
+    encyclopediaDialog,
     contractDialog,
     propertyDialog,
     winnerDialog,
@@ -5102,8 +5345,10 @@ function createCoopProposalCard(proposal, player) {
   const title = document.createElement("strong");
   title.textContent = `${spaceDisplayName(proposal.propertyIndex)} / ${proposal.modeLabel || financials.modeLabel}`;
   const detail = document.createElement("small");
-  detail.textContent = `${partner?.name || "合作方"} 向 ${owner?.name || "所有方"} 提案 / 你付 ${formatMoney(financials.upfront)} / 对方收 ${formatMoney(financials.ownerReceipt)} / 给你 ${formatMoney(financials.partnerPerRound)}/轮 / 对方留 ${formatMoney(financials.ownerPerRound)}/轮 / ${financials.duration}轮 / 违约 ${formatMoney(financials.penalty)} / ${proposal.response || proposal.riskLevel}`;
+  detail.textContent = `${partner?.name || "合作方"} 向 ${owner?.name || "所有方"} 提案 / 乙方付甲方 ${formatMoney(financials.upfront)} / 甲方收到 ${formatMoney(financials.ownerReceipt)} / 甲方给乙方 ${formatMoney(financials.partnerPerRound)}/轮 / 甲方保留 ${formatMoney(financials.ownerPerRound)}/轮 / ${financials.duration}轮 / 违约 ${formatMoney(financials.penalty)} / ${proposal.response || proposal.riskLevel}`;
   copy.append(tag, title, detail);
+
+  const contractView = createCoopProposalContractView(proposal, financials, owner, partner);
 
   const actions = document.createElement("div");
   actions.className = "proposal-actions";
@@ -5126,8 +5371,56 @@ function createCoopProposalCard(proposal, player) {
     status.textContent = proposal.status === "rejected" ? "未同意" : "等待";
     actions.appendChild(status);
   }
-  card.append(copy, actions);
+  card.append(copy, contractView, actions);
   return card;
+}
+
+function createCoopProposalContractView(proposal, financials, owner, partner) {
+  const propertyName = spaceDisplayName(proposal.propertyIndex);
+  const view = document.createElement("section");
+  view.className = "proposal-contract-view";
+
+  const heading = document.createElement("div");
+  heading.className = "proposal-contract-heading";
+  const title = document.createElement("strong");
+  title.textContent = "双方可见合同内容";
+  const meta = document.createElement("span");
+  meta.textContent = `${proposal.modeLabel || financials.modeLabel} / ${proposal.riskLevel || ""} / ${proposal.advisor || ""}`;
+  heading.append(title, meta);
+
+  const grid = document.createElement("div");
+  grid.className = "proposal-contract-grid";
+  [
+    ["甲方", owner?.name || "所有方", "城市持有人"],
+    ["乙方", partner?.name || "合作方", "合作投资人"],
+    ["签署城市", propertyName, proposal.template || contractTemplateForCity(proposal.propertyIndex).label],
+    ["合同价值", formatMoney(financials.contractValue), `发起方 ${playerById(proposal.proposerId)?.name || ""}`],
+    ["乙方付甲方", formatMoney(financials.upfront), "正式生效时扣款"],
+    ["甲方当下收到", formatMoney(financials.ownerReceipt), `${owner?.name || "甲方"} 入账`],
+    ["甲方给乙方 / 每轮", formatMoney(financials.partnerPerRound), `${financials.duration} 轮`],
+    ["甲方保留 / 每轮", formatMoney(financials.ownerPerRound), `${financials.duration} 轮`],
+    ["违约金", formatMoney(financials.penalty), proposal.riskLevel || ""],
+    ["违约条款", proposal.clause || contractTemplateForCity(proposal.propertyIndex).clause, "抵押 / 转手 / 破产会检查"],
+    ["甲方签名", proposal.ownerSignature || owner?.name || "甲方", "审批方签名"],
+    ["乙方签名", proposal.partnerSignature || partner?.name || "乙方", "发起方签名"],
+  ].forEach(([label, value, note]) => {
+    const item = document.createElement("article");
+    const small = document.createElement("small");
+    small.textContent = label;
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+    const span = document.createElement("span");
+    span.textContent = note;
+    item.append(small, strong, span);
+    grid.appendChild(item);
+  });
+
+  const note = document.createElement("p");
+  note.className = "proposal-contract-note";
+  note.textContent = "这份合同在同意前双方都可见；只有审批方同意后，系统才会扣款并生成正式合同。";
+
+  view.append(heading, grid, note);
+  return view;
 }
 
 function contractSigningPlayer() {
@@ -5504,7 +5797,7 @@ function renderCityTicker() {
   headline.textContent = leader ? uiText("leaderHeadline", leader.name) : uiText("cityNews");
   const details = document.createElement("span");
   details.textContent = current
-    ? `${uiText("tickerDetails", market.title, market.detail, current.name, ownedCount, topLevel)} / 地产${realEstateIndexLabel()} / 股票${stockIndexLabel()}`
+    ? `${uiText("tickerDetails", localizedMarketTitle(market), localizedMarketDetail(market), current.name, ownedCount, topLevel)} / ${boardMetaLabel("realEstate", "地产")} ${realEstateIndexLabel()} / ${boardMetaLabel("stock", "股票")} ${stockIndexLabel()}`
     : uiText("tickerReady");
   copy.append(headline, details);
 
@@ -5532,7 +5825,7 @@ function renderWorldMap() {
   const atlas = document.createElement("button");
   atlas.type = "button";
   atlas.dataset.mapAction = "atlas";
-  atlas.textContent = "图鉴";
+  atlas.textContent = boardMetaLabel("atlas", "图鉴");
   controls.append(zoomOut, zoomIn, atlas);
 
 	  const globe = document.createElement("div");
@@ -7033,7 +7326,7 @@ function renderEncyclopedia() {
   const search = document.createElement("input");
   search.type = "search";
   search.dataset.atlasSearch = "true";
-  search.placeholder = "搜索城市、洲、地标或产业";
+  search.placeholder = atlasLabel("search");
   search.value = state.atlasSearch || "";
   tools.appendChild(search);
   const count = document.createElement("span");
@@ -7060,24 +7353,25 @@ function renderEncyclopedia() {
       item.dataset.openProperty = String(index);
       item.innerHTML = `
         <span class="encyclopedia-swatch"></span>
-        <strong>${String(index + 1).padStart(2, "0")} ${space.name}</strong>
-        <small>${regionDisplayName(space.region)} / ${cityRating(index)}级 / ${rareBadgeLabel(space.rareBadge)} / ${state.cityCollection?.includes(index) ? "已收藏" : "未收藏"}</small>
-        <em>股价 ${formatMoney(stockPrice(index))} / 公司 ${companySummary(index)} / ${state.cityPublic?.[index] ? "已IPO" : "未IPO"}</em>
+        <strong>${String(index + 1).padStart(2, "0")} ${spaceDisplayName(index)}</strong>
+        <small>${regionDisplayName(space.region)} / ${cityRatingDisplay(index)} / ${rareBadgeLabel(space.rareBadge)} / ${state.cityCollection?.includes(index) ? atlasLabel("collected") : atlasLabel("notCollected")}</small>
+        <em>${atlasLabel("stockPrice")} ${formatMoney(stockPrice(index))} / ${atlasLabel("company")} ${localizedCompanySummary(index)} / ${state.cityPublic?.[index] ? atlasLabel("ipo") : atlasLabel("notIpo")}</em>
       `;
     } else {
       item.setAttribute("aria-disabled", "true");
       item.innerHTML = `
         <span class="encyclopedia-swatch"></span>
-        <strong>${String(index + 1).padStart(2, "0")} ${space.name}</strong>
+        <strong>${String(index + 1).padStart(2, "0")} ${spaceDisplayName(index)}</strong>
         <small>${currentTileBadge(index)} / ${tileDetail(index)}</small>
-        <em>特殊地点会改变移动、市场、现金或手牌节奏。</em>
+        <em>${atlasLabel("specialNote")}</em>
       `;
     }
     list.appendChild(item);
   });
   count.textContent = `${visibleCount}/100`;
   tools.appendChild(count);
-  encyclopediaBody.append(tools, list.children.length ? list : emptyNote("没有找到匹配城市。"));
+  encyclopediaBody.append(tools, list.children.length ? list : emptyNote(atlasLabel("noMatch")));
+  applyDynamicLanguagePatches();
 }
 
 function handlePropertyDialogClick(event) {
@@ -9505,7 +9799,13 @@ function marketIndexValue() {
 
 function marketIndexLabel() {
   const value = marketIndexValue();
-  const direction = value >= 145 ? "强势" : value >= 105 ? "活跃" : "观望";
+  const language = currentLanguage();
+  const moods = indexMoodCopy[language];
+  const direction = value >= 145
+    ? (moods?.strong || "强势")
+    : value >= 105
+      ? (moods?.active || "活跃")
+      : (moods?.watch || "观望");
   return `${value} ${direction}`;
 }
 
@@ -9527,12 +9827,26 @@ function stockIndexValue() {
 
 function realEstateIndexLabel() {
   const value = realEstateIndexValue();
-  return `${value} ${value >= 160 ? "高温" : value >= 105 ? "活跃" : "低位"}`;
+  const language = currentLanguage();
+  const moods = indexMoodCopy[language];
+  const direction = value >= 160
+    ? (moods?.hot || "高温")
+    : value >= 105
+      ? (moods?.active || "活跃")
+      : (moods?.low || "低位");
+  return `${value} ${direction}`;
 }
 
 function stockIndexLabel() {
   const value = stockIndexValue();
-  return `${value} ${value >= 145 ? "追涨" : value >= 95 ? "震荡" : "低迷"}`;
+  const language = currentLanguage();
+  const moods = indexMoodCopy[language];
+  const direction = value >= 145
+    ? (moods?.chase || "追涨")
+    : value >= 95
+      ? (moods?.volatile || "震荡")
+      : (moods?.weak || "低迷");
+  return `${value} ${direction}`;
 }
 
 function globalFinancingRate() {
@@ -9598,6 +9912,59 @@ function currentRules() {
 
 function currentMarket() {
   return marketDefinitions[state.market?.id] || marketDefinitions.steady;
+}
+
+function localizedMarketTitle(market = currentMarket()) {
+  const language = currentLanguage();
+  const id = marketDefinitions[market?.id] ? market.id : state.market?.id || "steady";
+  if (language === "zh") return market?.title || marketDefinitions.steady.title;
+  return marketCopy[language]?.[id]?.[0] || market?.title || marketDefinitions.steady.title;
+}
+
+function localizedMarketDetail(market = currentMarket()) {
+  const language = currentLanguage();
+  const id = marketDefinitions[market?.id] ? market.id : state.market?.id || "steady";
+  if (language === "zh") return market?.detail || marketDefinitions.steady.detail;
+  return marketCopy[language]?.[id]?.[1] || market?.detail || marketDefinitions.steady.detail;
+}
+
+function boardMetaLabel(key, fallback) {
+  const language = currentLanguage();
+  if (language === "zh") return fallback;
+  return boardMetaCopy[language]?.[key] || fallback;
+}
+
+function atlasLabel(key) {
+  const language = currentLanguage();
+  return atlasCopy[language]?.[key] || atlasCopy.zh[key] || key;
+}
+
+function cityRatingDisplay(index) {
+  const rating = cityRating(index);
+  return currentLanguage() === "zh" ? `${rating}${atlasLabel("level")}` : `${rating} ${atlasLabel("level")}`;
+}
+
+function companyTypeLabel(type) {
+  const language = currentLanguage();
+  if (language === "zh") return companyTypeDefinitions[type]?.label || atlasLabel("company");
+  return companyTypeLabels[language]?.[type] || companyTypeDefinitions[type]?.label || atlasLabel("company");
+}
+
+function localizedCompanySummary(index) {
+  const built = COMPANY_TYPES
+    .filter((type) => cityCompanies(index)[type])
+    .map((type) => companyTypeLabel(type));
+  return built.length ? built.join(" / ") : atlasLabel("notBuilt");
+}
+
+function localizedSpaceMeta(meta) {
+  const map = {
+    "抽卡": "draw",
+    "买卡": "shop",
+    "休息": "rest",
+    "停一轮": "stop",
+  };
+  return boardMetaLabel(map[meta], meta);
 }
 
 function createMarketState(id = "steady") {
@@ -11881,11 +12248,11 @@ function tileMeta(space, index) {
     const price = propertyPrice(index);
     if (space.kind === "utility") return `¥${price}`;
     if (space.kind === "station") return `¥${price}`;
-    return `¥${price} / 租 ${space.rent}`;
+    return `¥${price} / ${boardMetaLabel("rent", "租")} ${space.rent}`;
   }
   if (space.type === "tax") return `-${space.amount}`;
   if (space.type === "bonus") return `+${space.amount}`;
-  return space.meta || "";
+  return localizedSpaceMeta(space.meta) || "";
 }
 
 function tileDetail(index) {
