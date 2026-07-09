@@ -497,6 +497,24 @@ const languageOptionLabels = {
   es: { zh: "Chino", en: "Inglés", es: "Español" },
 };
 
+const mainActionDrawerCopy = {
+  zh: {
+    "main:turn": ["回合行动", "掷骰 / 合同 / 结束"],
+    "main:deal": ["买地决策", "购买 / 拍卖"],
+    "main:tools": ["工具建设", "冒险 / 升级"],
+  },
+  en: {
+    "main:turn": ["Turn Actions", "Roll / Contracts / End"],
+    "main:deal": ["Buy Decision", "Buy / Auction"],
+    "main:tools": ["Tools & Build", "Venture / Upgrade"],
+  },
+  es: {
+    "main:turn": ["Turno", "Dados / Contratos / Fin"],
+    "main:deal": ["Comprar", "Comprar / Subasta"],
+    "main:tools": ["Herramientas", "Evento / Mejorar"],
+  },
+};
+
 const setupSelectLabels = {
   zh: {
     playerCount: { 2: "2 人", 3: "3 人", 4: "4 人" },
@@ -2237,6 +2255,10 @@ const encyclopediaBody = document.getElementById("encyclopediaBody");
 const closeEncyclopediaButton = document.getElementById("closeEncyclopediaButton");
 
 let state = loadGame() || createInitialGame();
+const initialUrlLanguage = languageFromUrl();
+if (initialUrlLanguage) {
+  state.config = { ...(state.config || {}), language: initialUrlLanguage };
+}
 if (shouldPreferContractsView() && !["auction", "shop"].includes(state.phase)) {
   state.sidePanelMode = "coop";
   state.sidePanelCollapsed = false;
@@ -2265,7 +2287,9 @@ musicButton.addEventListener("click", toggleBackgroundMusic);
 newGameButton.addEventListener("click", openSetupDialog);
 languageSelect.addEventListener("change", handleLanguageChange);
 setupLanguageInput.addEventListener("change", () => {
-  state.config = { ...(state.config || {}), language: normalizeLanguage(setupLanguageInput.value) };
+  const language = normalizeLanguage(setupLanguageInput.value);
+  state.config = { ...(state.config || {}), language };
+  syncLanguageUrl(language);
   renderStaticLabels();
 });
 difficultyInput.addEventListener("change", updateDifficultyHint);
@@ -2320,7 +2344,7 @@ encyclopediaBody.addEventListener("input", (event) => {
 });
 
 function currentLanguage() {
-  return languageFromUrl() || normalizeLanguage(state?.config?.language || "zh");
+  return normalizeLanguage(state?.config?.language || "zh");
 }
 
 function normalizeLanguage(language) {
@@ -2341,6 +2365,18 @@ function languageFromUrl() {
     return languageDefinitions[language] ? language : "";
   } catch {
     return "";
+  }
+}
+
+function syncLanguageUrl(language) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("language");
+    url.searchParams.delete("locale");
+    url.searchParams.set("lang", normalizeLanguage(language));
+    window.history.replaceState({}, "", url);
+  } catch {
+    // Language still switches when history APIs are unavailable.
   }
 }
 
@@ -2460,7 +2496,20 @@ function renderStaticLabels() {
   startGameButton.textContent = uiTextForLanguage(language, "start");
   newGameButton.setAttribute("aria-label", uiTextForLanguage(language, "newGame"));
   newGameButton.title = uiTextForLanguage(language, "newGame");
+  renderMainActionDrawerLabels();
   if (tutorialDialog?.open) renderTutorialIntro();
+}
+
+function renderMainActionDrawerLabels() {
+  const language = currentLanguage();
+  const copy = mainActionDrawerCopy[language] || mainActionDrawerCopy.zh;
+  document.querySelectorAll(".main-action-drawer[data-drawer-id]").forEach((drawer) => {
+    const [title, detail] = copy[drawer.dataset.drawerId] || [];
+    const titleNode = drawer.querySelector("summary > span");
+    const detailNode = drawer.querySelector("summary > small");
+    if (titleNode && title) titleNode.textContent = title;
+    if (detailNode && detail) detailNode.textContent = detail;
+  });
 }
 
 function updateSelectLabels(select, labels) {
@@ -2950,7 +2999,6 @@ function applyDynamicLanguagePatches() {
     boardEl,
     panelTabs,
     document.querySelector(".side-panel"),
-    document.querySelector(".action-bar"),
     statusLine,
     currentTileCard,
     cityTicker,
@@ -3142,6 +3190,7 @@ function propertyPlaceLabel(space) {
 function handleLanguageChange() {
   const language = normalizeLanguage(languageSelect.value);
   state.config = { ...(state.config || {}), language };
+  syncLanguageUrl(language);
   const player = currentPlayer();
   if (player && state.phase === "waiting") {
     state.status = uiTextForLanguage(language, "readyStatus", player.name);
