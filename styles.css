@@ -2474,10 +2474,15 @@ h2 {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 249, 252, 0.9));
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 16px;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   backdrop-filter: blur(8px);
+}
+
+.side-panel h2 {
+  font-size: 1.08rem;
+  line-height: 1.05;
 }
 
 .icon-button {
@@ -2834,6 +2839,7 @@ h2 {
 .panel-tabs {
   position: static;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   min-width: 0;
 }
@@ -2849,6 +2855,7 @@ h2 {
 }
 
 .side-category-drawer[open] {
+  grid-column: 1 / -1;
   border-color: rgba(15, 131, 151, 0.26);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(235, 248, 248, 0.82));
@@ -2868,7 +2875,7 @@ h2 {
 }
 
 .side-category-drawer summary {
-  min-height: 46px;
+  min-height: 40px;
   min-width: 0;
   list-style: none;
   cursor: pointer;
@@ -2876,8 +2883,8 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
+  gap: 6px;
+  padding: 0 8px;
   color: var(--charcoal);
 }
 
@@ -2887,8 +2894,8 @@ h2 {
 
 .side-category-drawer summary::after {
   content: "+";
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -2908,7 +2915,7 @@ h2 {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .side-category-label > span {
@@ -2918,8 +2925,8 @@ h2 {
 }
 
 .side-category-icon {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   color: var(--teal);
   flex: 0 0 auto;
 }
@@ -2934,27 +2941,31 @@ h2 {
 }
 
 .side-category-drawer strong {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 950;
 }
 
 .side-category-drawer small,
 .side-category-drawer em {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   font-weight: 850;
+}
+
+.side-category-label small {
+  display: none;
 }
 
 .side-category-drawer em {
   font-style: normal;
-  max-width: 72px;
+  max-width: 56px;
   text-align: right;
 }
 
 .side-category-body {
   display: grid;
   gap: 10px;
-  padding: 0 10px 10px;
+  padding: 0 8px 8px;
 }
 
 .side-panel > [hidden] {

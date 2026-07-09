@@ -2156,6 +2156,10 @@ const encyclopediaBody = document.getElementById("encyclopediaBody");
 const closeEncyclopediaButton = document.getElementById("closeEncyclopediaButton");
 
 let state = loadGame() || createInitialGame();
+if (shouldPreferContractsView() && !["auction", "shop"].includes(state.phase)) {
+  state.sidePanelMode = "coop";
+  state.sidePanelCollapsed = false;
+}
 let automationTimer = 0;
 let pendingCoopContractIndex = null;
 const musicState = {
@@ -2983,11 +2987,10 @@ function renderPlayers() {
 
 function activeSidePanelMode() {
   if (state.phase === "auction" || state.phase === "shop") return "deal";
-  if (shouldForceContractsView()) return "coop";
   return SIDE_PANEL_MODES.includes(state.sidePanelMode) ? state.sidePanelMode : "deal";
 }
 
-function shouldForceContractsView() {
+function shouldPreferContractsView() {
   try {
     return new URLSearchParams(window.location.search).get("view-contracts") === "always";
   } catch {
