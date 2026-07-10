@@ -186,12 +186,13 @@ button:disabled {
 
 .board {
   position: relative;
-  width: min(100%, 1220px);
+  width: var(--board-width, 1220px);
+  max-width: none;
   aspect-ratio: 1;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(26, minmax(0, 1fr));
-  grid-template-rows: repeat(26, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--board-grid-size, 26), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--board-grid-size, 26), minmax(0, 1fr));
   gap: 2px;
   padding: 7px;
   border: 0;
@@ -605,6 +606,16 @@ button:disabled {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     0 18px 38px rgba(13, 23, 36, 0.14);
+}
+
+.board[data-map-size="200"] .center-console {
+  grid-column: 4 / 34;
+  grid-row: 4 / 36;
+}
+
+.board[data-map-size="300"] .center-console {
+  grid-column: 4 / 38;
+  grid-row: 4 / 42;
 }
 
 .brand-row,
@@ -4531,6 +4542,7 @@ html[lang="es"] .action-bar button.is-next-action::after {
 
 .goal-panel,
 .route-mission,
+.hidden-mission-card,
 .quarterly-report,
 .recommendation-card,
 .trade-negotiation,
@@ -4573,6 +4585,13 @@ html[lang="es"] .action-bar button.is-next-action::after {
   border-color: rgba(216, 153, 33, 0.26);
   background:
     linear-gradient(135deg, rgba(255, 246, 223, 0.86), rgba(255, 255, 255, 0.9));
+}
+
+.hidden-mission-card {
+  margin-bottom: 8px;
+  border-color: rgba(99, 82, 171, 0.28);
+  background:
+    linear-gradient(135deg, rgba(242, 238, 255, 0.9), rgba(255, 255, 255, 0.92));
 }
 
 .recommendation-card {
@@ -4760,6 +4779,7 @@ html[lang="es"] .action-bar button.is-next-action::after {
 }
 
 .route-mission p,
+.hidden-mission-card p,
 .quarterly-report span,
 .recommendation-card span {
   margin: 0;
@@ -4769,7 +4789,8 @@ html[lang="es"] .action-bar button.is-next-action::after {
   line-height: 1.34;
 }
 
-.route-mission small {
+.route-mission small,
+.hidden-mission-card small {
   color: var(--muted);
   font-size: 0.64rem;
   font-weight: 900;
@@ -5880,7 +5901,7 @@ html[lang="es"] .action-bar button.is-next-action::after {
   }
 
   .board {
-    width: 1560px;
+    width: var(--board-width, 1560px);
     max-width: none;
     gap: 3px;
     padding: 8px;

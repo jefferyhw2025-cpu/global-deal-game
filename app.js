@@ -19,7 +19,12 @@ const AUCTION_INCREMENT = 20;
 const AUCTION_TURN_MS = 12000;
 const MOVEMENT_STEP_MS = 170;
 const PAUSE_INDEX = 25;
-const BOARD_GRID_SIZE = 26;
+const MIN_PLAYER_COUNT = 2;
+const MAX_PLAYER_COUNT = 12;
+const BASE_MAP_SIZE = 100;
+const MAP_SIZE_STEP = 100;
+const MAP_SIZE_MAX = 300;
+const BASE_BOARD_GRID_SIZE = 26;
 const CONTINENT_SET_SIZE = 3;
 const LOAN_AMOUNT = 300;
 const LOAN_REPAY_AMOUNT = 330;
@@ -104,6 +109,14 @@ const playerTemplates = [
   { id: "p2", name: "Investor A", color: "#128a9c", isAI: true, aiStyle: "builder" },
   { id: "p3", name: "Investor B", color: "#7657b8", isAI: true, aiStyle: "auctioneer" },
   { id: "p4", name: "Investor C", color: "#2d9f6f", isAI: true, aiStyle: "collector" },
+  { id: "p5", name: "Investor D", color: "#d89921", isAI: true, aiStyle: "speculator" },
+  { id: "p6", name: "Investor E", color: "#4d81d9", isAI: true, aiStyle: "builder" },
+  { id: "p7", name: "Investor F", color: "#c6527a", isAI: true, aiStyle: "auctioneer" },
+  { id: "p8", name: "Investor G", color: "#3c8f5d", isAI: true, aiStyle: "collector" },
+  { id: "p9", name: "Investor H", color: "#8a6f3a", isAI: true, aiStyle: "speculator" },
+  { id: "p10", name: "Investor I", color: "#245c7c", isAI: true, aiStyle: "builder" },
+  { id: "p11", name: "Investor J", color: "#8f4c3c", isAI: true, aiStyle: "auctioneer" },
+  { id: "p12", name: "Investor K", color: "#566072", isAI: true, aiStyle: "collector" },
 ];
 
 const aiStyleDefinitions = {
@@ -559,6 +572,9 @@ const marketCopy = {
     crisis: ["Financial Crisis", "Land prices drop and rent is pressured"],
     goldenWeek: ["Golden Week", "Tourism city rent jumps"],
     stockCrash: ["Stock Shock", "City stock prices crash"],
+    blackSwan: ["Black Swan", "Global risk reprices every deal"],
+    limitUp: ["Limit-Up Rally", "Hot city stocks surge"],
+    limitDown: ["Limit-Down Panic", "City stocks fall hard"],
   },
   es: {
     steady: ["Mercado Estable", "Las ciudades operan con normalidad"],
@@ -570,6 +586,9 @@ const marketCopy = {
     crisis: ["Crisis Financiera", "Bajan precios y rentas"],
     goldenWeek: ["Semana Dorada", "Sube la renta turistica"],
     stockCrash: ["Caida Bursatil", "Caen las acciones urbanas"],
+    blackSwan: ["Cisne Negro", "El riesgo global cambia cada trato"],
+    limitUp: ["Subida Limite", "Las acciones urbanas se disparan"],
+    limitDown: ["Panico Limite", "Las acciones urbanas caen fuerte"],
   },
 };
 
@@ -651,21 +670,21 @@ const atlasCopy = {
 
 const setupSelectLabels = {
   zh: {
-    playerCount: { 2: "2 人", 3: "3 人", 4: "4 人" },
+    playerCount: { 2: "2 人", 3: "3 人", 4: "4 人", 5: "5 人", 6: "6 人", 7: "7 人", 8: "8 人", 9: "9 人", 10: "10 人", 11: "11 人", 12: "12 人" },
     difficulty: { easy: "轻松", normal: "普通", smart: "精明", expert: "专家", master: "大师" },
     character: { banker: "银行家", builder: "建筑师", broker: "经纪人", landlord: "地主" },
     theme: { city: "现代城市", island: "海岛假日", space: "星际航线", fairy: "童话小镇" },
     rulesPreset: { classic: "经典规则", fast: "快速经营", limited: "20 回合限时", daily: "每日挑战", hard: "困难税费" },
   },
   en: {
-    playerCount: { 2: "2 Players", 3: "3 Players", 4: "4 Players" },
+    playerCount: { 2: "2 Players", 3: "3 Players", 4: "4 Players", 5: "5 Players", 6: "6 Players", 7: "7 Players", 8: "8 Players", 9: "9 Players", 10: "10 Players", 11: "11 Players", 12: "12 Players" },
     difficulty: { easy: "Easy", normal: "Normal", smart: "Smart", expert: "Expert", master: "Master" },
     character: { banker: "Banker", builder: "Architect", broker: "Broker", landlord: "Landlord" },
     theme: { city: "Modern City", island: "Island Resort", space: "Space Routes", fairy: "Fairy Town" },
     rulesPreset: { classic: "Classic", fast: "Fast Business", limited: "20-Round Limit", daily: "Daily Challenge", hard: "Hard Taxes" },
   },
   es: {
-    playerCount: { 2: "2 Jugadores", 3: "3 Jugadores", 4: "4 Jugadores" },
+    playerCount: { 2: "2 Jugadores", 3: "3 Jugadores", 4: "4 Jugadores", 5: "5 Jugadores", 6: "6 Jugadores", 7: "7 Jugadores", 8: "8 Jugadores", 9: "9 Jugadores", 10: "10 Jugadores", 11: "11 Jugadores", 12: "12 Jugadores" },
     difficulty: { easy: "Fácil", normal: "Normal", smart: "Inteligente", expert: "Experto", master: "Maestro" },
     character: { banker: "Banquero", builder: "Arquitecto", broker: "Corredor", landlord: "Propietario" },
     theme: { city: "Ciudad Moderna", island: "Isla", space: "Rutas Espaciales", fairy: "Pueblo de Cuento" },
@@ -1246,6 +1265,9 @@ const marketDefinitions = {
   crisis: { title: "金融危机", detail: "地价下降，租金承压", price: 0.78, rent: 0.82, shop: 0.95 },
   goldenWeek: { title: "黄金周", detail: "旅游城市租金大涨", price: 1.05, rent: 1.16, shop: 1.02 },
   stockCrash: { title: "股灾冲击", detail: "城市股票价格暴跌", price: 0.92, rent: 0.94, shop: 1.05 },
+  blackSwan: { title: "黑天鹅", detail: "全球风险突然重估，交易回报和租金剧烈波动", price: 0.72, rent: 1.18, shop: 1.12 },
+  limitUp: { title: "涨停行情", detail: "热门城市股票暴涨，并购成本抬高", price: 1.08, rent: 1.08, shop: 1 },
+  limitDown: { title: "跌停恐慌", detail: "城市股票暴跌，融资和爆仓风险上升", price: 0.86, rent: 0.9, shop: 1.04 },
 };
 
 const citySpecialtyDefinitions = {
@@ -1439,23 +1461,110 @@ const worldCityTemplates = [
   { name: "佛罗伦萨文艺街", group: "world", region: "欧洲", country: "意大利", landmark: "文艺复兴街区", color: "#223042" },
 ];
 
-const spaces = createWorldTourSpaces();
+let spaces = createWorldTourSpaces(BASE_MAP_SIZE);
 
-function createWorldTourSpaces() {
+function createWorldTourSpaces(size = BASE_MAP_SIZE) {
+  const totalSpaces = mapSizeForLocationCount(size);
   const result = [];
   let cityIndex = 0;
 
-  for (let index = 0; index < 100; index += 1) {
-    if (specialWorldSpaces[index]) {
-      result.push(specialWorldSpaces[index]);
+  for (let index = 0; index < totalSpaces; index += 1) {
+    const special = specialWorldSpaceFor(index);
+    if (special) {
+      result.push(special);
       continue;
     }
 
-    result.push(buildWorldProperty(worldCityTemplates[cityIndex], cityIndex));
+    result.push(buildWorldProperty(worldCityTemplateFor(cityIndex), cityIndex));
     cityIndex += 1;
   }
 
   return result;
+}
+
+function normalizePlayerCount(value) {
+  return clamp(Math.round(Number(value) || 4), MIN_PLAYER_COUNT, MAX_PLAYER_COUNT);
+}
+
+function mapSizeForPlayerCount(playerCount) {
+  const count = Math.max(1, Math.round(Number(playerCount) || 4));
+  if (count <= 4) return BASE_MAP_SIZE;
+  if (count <= 8) return BASE_MAP_SIZE * 2;
+  return BASE_MAP_SIZE * 3;
+}
+
+function mapSizeForLocationCount(value) {
+  const size = Math.round(Number(value) || BASE_MAP_SIZE);
+  if (size <= BASE_MAP_SIZE) return BASE_MAP_SIZE;
+  if (size <= BASE_MAP_SIZE * 2) return BASE_MAP_SIZE * 2;
+  return MAP_SIZE_MAX;
+}
+
+function boardGridSize() {
+  return Math.max(BASE_BOARD_GRID_SIZE, Math.floor(spaces.length / 4) + 1);
+}
+
+function boardPixelSize() {
+  const side = boardGridSize();
+  const cellSize = spaces.length >= BASE_MAP_SIZE * 3 ? 30 : spaces.length >= BASE_MAP_SIZE * 2 ? 34 : 47;
+  return Math.max(1220, Math.round(side * cellSize));
+}
+
+function totalPropertyCount() {
+  return spaces.filter((space) => space.type === "property").length;
+}
+
+function atlasOpenButtonLabel(resultCount = 0) {
+  const total = spaces.length;
+  const count = Number(resultCount) || 0;
+  const language = currentLanguage();
+  if (language === "en") {
+    return count ? `Open ${total}-Location Atlas / ${count} results` : `Open ${total}-Location Atlas`;
+  }
+  if (language === "es") {
+    return count ? `Abrir Atlas de ${total} Lugares / ${count} resultados` : `Abrir Atlas de ${total} Lugares`;
+  }
+  return count ? `打开 ${total} 地点图鉴 / 当前 ${count} 个结果` : `打开 ${total} 地点图鉴`;
+}
+
+function setActiveMapSize(size) {
+  const nextSize = mapSizeForLocationCount(size);
+  if (spaces.length !== nextSize) spaces = createWorldTourSpaces(nextSize);
+  return spaces;
+}
+
+function setActiveMapForPlayerCount(playerCount) {
+  return setActiveMapSize(mapSizeForPlayerCount(playerCount));
+}
+
+function specialWorldSpaceFor(index) {
+  const base = specialWorldSpaces[index % BASE_MAP_SIZE];
+  if (!base) return null;
+  if (index < BASE_MAP_SIZE) return { ...base };
+  const lap = Math.floor(index / BASE_MAP_SIZE) + 1;
+  const lapNames = ["", "远洋", "星际"];
+  const prefix = lapNames[lap - 1] || `第${lap}`;
+  if (index % BASE_MAP_SIZE === 0) {
+    return { type: "bonus", name: `${prefix}交易中转站`, icon: "coin", amount: PASS_START_BONUS, meta: `+${PASS_START_BONUS}` };
+  }
+  return {
+    ...base,
+    name: `${prefix}${base.name}`,
+    amount: base.amount ? Math.round(base.amount * (1 + (lap - 1) * 0.12) / 10) * 10 : base.amount,
+  };
+}
+
+function worldCityTemplateFor(order) {
+  const base = worldCityTemplates[order % worldCityTemplates.length];
+  const lap = Math.floor(order / worldCityTemplates.length);
+  if (lap === 0) return base;
+  const suffixes = ["国际新区", "金融港", "科技环", "贸易湾"];
+  const suffix = suffixes[(lap - 1) % suffixes.length];
+  return {
+    ...base,
+    name: `${base.name}${suffix}`,
+    landmark: `${base.landmark}${suffix}`,
+  };
 }
 
 function buildWorldProperty(city, order) {
@@ -2282,6 +2391,91 @@ const handCardDefinitions = {
       return !player.disasterShield;
     },
   },
+  spyBriefcase: {
+    title: "商业间谍卡",
+    category: "情报",
+    icon: "card",
+    tone: "deal",
+    rarity: "rare",
+    description: "查看最强对手的手牌、股票、债务、合同风险，并记入情报夹。",
+    use(player) {
+      const target = richestOpponent(player);
+      if (!target) return `${player.name} 没有可调查的对手。`;
+      const contracts = coopContractsForPlayer(target).filter((contract) => contract.status === "active").length;
+      const shares = totalStockShares(target);
+      const debt = target.debt || 0;
+      const risk = riskIndex(target).score;
+      player.spyIntel = {
+        targetId: target.id,
+        round: state.round,
+        handCount: target.cards?.length || 0,
+        shares,
+        debt,
+        contracts,
+        risk,
+      };
+      player.grudgeTarget = target.id;
+      addNews("商业间谍", `${player.name} 掌握 ${target.name} 的债务、股票和合同风险。`, "deal");
+      showEventBurst(`${target.name} 情报已获得`, "deal");
+      return `${player.name} 偷看 ${target.name}：手牌 ${target.cards?.length || 0} 张，股票 ${shares} 股，债务 ${formatMoney(debt)}，合同 ${contracts} 份，风险 ${risk}。`;
+    },
+    canUse(player) {
+      return Boolean(richestOpponent(player));
+    },
+  },
+  comebackCard: {
+    title: "终局反转卡",
+    category: "翻盘",
+    icon: "spark",
+    tone: "gain",
+    rarity: "legendary",
+    description: "落后时获得现金和一股强势城市股票，但会增加融资风险。",
+    use(player) {
+      const leader = activePlayers().filter((item) => item.id !== player.id).sort((a, b) => netWorth(b) - netWorth(a))[0];
+      if (!leader || netWorth(player) >= netWorth(leader) - 700) return `${player.name} 还没有触发翻盘窗口。`;
+      const target = spaces
+        .map((space, index) => ({ space, index, score: stockPrice(index) + cityValuation(index) * 0.08 }))
+        .filter(({ space }) => space.type === "property")
+        .sort((a, b) => b.score - a.score)[0];
+      player.cash += 260;
+      player.debt = (player.debt || 0) + 120;
+      if (target) player.stocks[target.index] = Math.min(STOCK_MAX_PER_CITY + IPO_STOCK_BONUS, (player.stocks[target.index] || 0) + 1);
+      player.comebackReady = false;
+      addNews("终局反转", `${player.name} 获得翻盘资金，但债务风险上升。`, "gain");
+      showEventBurst("+¥260 翻盘机会", "gain");
+      return `${player.name} 打出终局反转卡，获得 ${formatMoney(260)} 和 1 股强势城市股票，同时增加 ${formatMoney(120)} 风险债务。`;
+    },
+    canUse(player) {
+      const leader = activePlayers().filter((item) => item.id !== player.id).sort((a, b) => netWorth(b) - netWorth(a))[0];
+      return Boolean(leader && netWorth(player) < netWorth(leader) - 700);
+    },
+  },
+  patentVoucher: {
+    title: "科技专利",
+    category: "建设",
+    icon: "build",
+    tone: "build",
+    rarity: "rare",
+    description: "为一座自有城市免费建立科技园；没有位置时兑换现金。",
+    use(player) {
+      const target = ownedPropertyIndexes(player.id)
+        .filter((index) => !cityCompanies(index).techPark)
+        .sort((a, b) => Number(spaces[b].specialty === "tech") - Number(spaces[a].specialty === "tech") || cityValuation(b) - cityValuation(a))[0];
+      if (target === undefined) {
+        player.cash += 140;
+        showEventBurst("+¥140 专利授权", "gain");
+        return `${player.name} 暂无可建科技园城市，专利授权兑换为 ${formatMoney(140)}。`;
+      }
+      cityCompanies(target).techPark = true;
+      addCityRevenue(target, 90);
+      addNews("科技专利", `${spaceDisplayName(target)} 建成科技园，升级与股票潜力提高。`, "gain");
+      showEventBurst(`${spaceDisplayName(target)} 科技园`, "build");
+      return `${player.name} 使用科技专利，在 ${spaceDisplayName(target)} 建立科技园。`;
+    },
+    canUse(player) {
+      return Boolean(player);
+    },
+  },
 };
 
 const shopCatalog = [
@@ -2301,6 +2495,9 @@ const shopCatalog = [
   { cardId: "propertySwap", price: 320 },
   { cardId: "insurance", price: 300 },
   { cardId: "disasterShield", price: 170 },
+  { cardId: "spyBriefcase", price: 210 },
+  { cardId: "patentVoucher", price: 240 },
+  { cardId: "comebackCard", price: 260 },
 ];
 
 const musicEvents = createMusicEvents();
@@ -3643,7 +3840,8 @@ function normalizeAuditReport(report) {
 }
 
 function createInitialGame(config = {}) {
-  const playerCount = Number(config.playerCount || 4);
+  const playerCount = normalizePlayerCount(config.playerCount || 4);
+  setActiveMapForPlayerCount(playerCount);
   const language = normalizeLanguage(config.language || "zh");
   const humanName = cleanName(config.playerName || DEFAULT_PLAYER_NAME);
   const tutorialMode = Boolean(config.tutorialMode);
@@ -3662,6 +3860,8 @@ function createInitialGame(config = {}) {
     position: 0,
     cards: [],
     stocks: {},
+    spyIntel: null,
+    comebackReady: false,
     grudgeTarget: "",
     rentShield: false,
     taxShield: false,
@@ -3722,10 +3922,13 @@ function createInitialGame(config = {}) {
     cityPublic: Array(spaces.length).fill(false),
     cityCollection: [],
     goals: createGameGoals(),
+    hiddenMissions: createHiddenMissions(players),
     mission: createRouteMission(1, players[0]),
     missionHistory: [],
     quarterlyReports: [],
     newsFeed: createInitialNewsFeed(),
+    marketEventHistory: [],
+    lastBlackSwanRound: 0,
     headquarters: {},
     stockSnapshots: Array(spaces.length).fill(0),
     stockTrends: Array(spaces.length).fill(0),
@@ -3744,7 +3947,7 @@ function createInitialGame(config = {}) {
     mapZoom: 1,
     worldPanelMode: "atlas",
     selectedPropertyIndex: null,
-    config: { playerCount, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, simpleMode: Boolean(config.simpleMode), ...rules },
+    config: { playerCount, mapSize: spaces.length, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, simpleMode: Boolean(config.simpleMode), ...rules },
   };
 }
 
@@ -3753,10 +3956,13 @@ function loadGame() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
+    const savedPlayerCount = Array.isArray(saved.players) ? normalizePlayerCount(saved.players.length) : 0;
+    if (savedPlayerCount) setActiveMapForPlayerCount(savedPlayerCount);
     if (
       saved.version !== 3 ||
       !Array.isArray(saved.players) ||
       saved.players.length < 2 ||
+      saved.players.length > MAX_PLAYER_COUNT ||
       !Array.isArray(saved.owners) ||
       saved.owners.length !== spaces.length ||
       !Array.isArray(saved.levels) ||
@@ -3781,6 +3987,8 @@ function loadGame() {
       player.position = clamp(Number(player.position) || 0, 0, spaces.length - 1);
       player.cards = Array.isArray(player.cards) ? player.cards.filter((cardId) => handCardDefinitions[cardId]) : [];
       player.stocks = normalizeStocks(player.stocks);
+      player.spyIntel = normalizeSpyIntel(player.spyIntel);
+      player.comebackReady = Boolean(player.comebackReady);
       player.grudgeTarget = typeof player.grudgeTarget === "string" ? player.grudgeTarget : "";
       player.rentShield = Boolean(player.rentShield);
       player.taxShield = Boolean(player.taxShield);
@@ -3811,6 +4019,7 @@ function loadGame() {
     const rules = normalizeRulesConfig(savedTutorialMode ? { ...(saved.config || {}), rulesPreset: "limited" } : (saved.config || {}));
     saved.config = {
       playerCount: saved.players.length,
+      mapSize: spaces.length,
       playerName: saved.players[0]?.name || DEFAULT_PLAYER_NAME,
       playerColor: /^#[0-9a-f]{6}$/i.test(saved.config?.playerColor || "") ? saved.config.playerColor : saved.players[0]?.color || playerTemplates[0].color,
       difficulty: savedTutorialMode ? "normal" : (difficultySettings[saved.config?.difficulty] ? saved.config.difficulty : "normal"),
@@ -3855,6 +4064,7 @@ function loadGame() {
     saved.cityPublic = normalizeBooleanArray(saved.cityPublic, spaces.length);
     saved.cityCollection = normalizeCityCollection(saved.cityCollection, saved.owners);
     saved.goals = normalizeGoals(saved.goals);
+    saved.hiddenMissions = normalizeHiddenMissions(saved.hiddenMissions, saved.players);
     saved.mission = normalizeMission(saved.mission) || createRouteMission(saved.round || 1, saved.players[0], missionSnapshotForPlayer(saved.players[0], saved));
     saved.missionHistory = Array.isArray(saved.missionHistory)
       ? saved.missionHistory.map(normalizeMissionHistoryItem).filter(Boolean).slice(0, 6)
@@ -3865,6 +4075,10 @@ function loadGame() {
     saved.newsFeed = Array.isArray(saved.newsFeed)
       ? saved.newsFeed.map(normalizeNewsItem).filter(Boolean).slice(0, NEWS_FEED_LIMIT)
       : createInitialNewsFeed();
+    saved.marketEventHistory = Array.isArray(saved.marketEventHistory)
+      ? saved.marketEventHistory.map(normalizeMarketEventHistoryItem).filter(Boolean).slice(0, 8)
+      : [];
+    saved.lastBlackSwanRound = Math.max(0, Number(saved.lastBlackSwanRound) || 0);
     saved.headquarters = normalizeHeadquarters(saved.headquarters);
     saved.stockSnapshots = normalizeNumberArray(saved.stockSnapshots, spaces.length, 0);
     saved.stockTrends = normalizeNumberArray(saved.stockTrends, spaces.length, 0);
@@ -3962,6 +4176,12 @@ function refreshOpenLocalizedDialogs() {
 
 function renderBoard() {
   boardEl.querySelectorAll(".tile").forEach((tile) => tile.remove());
+  const side = boardGridSize();
+  boardEl.style.setProperty("--board-grid-size", String(side));
+  boardEl.style.setProperty("--board-width", `${boardPixelSize()}px`);
+  boardEl.style.gridTemplateColumns = `repeat(${side}, minmax(0, 1fr))`;
+  boardEl.style.gridTemplateRows = `repeat(${side}, minmax(0, 1fr))`;
+  boardEl.dataset.mapSize = String(spaces.length);
 
   spaces.forEach((space, index) => {
     const tile = document.createElement("article");
@@ -4198,7 +4418,7 @@ function sidePanelDrawerDefinitions() {
       label: uiText("sideWorld"),
       detail: uiText("sideWorldDetail"),
       icon: "map",
-      meta: () => `${state.cityCollection?.length || 0}/100`,
+      meta: () => `${state.cityCollection?.length || 0}/${totalPropertyCount()}`,
       panels: () => [worldPanel],
     },
     {
@@ -4497,6 +4717,28 @@ function renderRouteMission(player) {
   name.textContent = mission.title;
   const detail = document.createElement("small");
   detail.textContent = `${progress.label} / 奖励 ${missionRewardText(mission)}`;
+  card.append(top, name, createProgressMeter(progress.percent), detail);
+  return card;
+}
+
+function renderHiddenMissionCard(player) {
+  if (!player || player.isAI) return emptyNote("对手的隐藏任务不会公开。");
+  const mission = hiddenMissionFor(player);
+  if (!mission) return emptyNote("暂无隐藏任务。");
+  const progress = hiddenMissionProgress(mission, player);
+  const card = document.createElement("article");
+  card.className = mission.completed ? "hidden-mission-card mission-complete" : "hidden-mission-card";
+  const top = document.createElement("div");
+  top.className = "route-mission-top";
+  const title = document.createElement("strong");
+  title.textContent = "隐藏任务";
+  const badge = document.createElement("span");
+  badge.textContent = mission.completed ? "已完成" : "秘密目标";
+  top.append(title, badge);
+  const name = document.createElement("p");
+  name.textContent = mission.title;
+  const detail = document.createElement("small");
+  detail.textContent = `${progress.label} / 奖励 ${formatMoney(mission.rewardCash)}${mission.rewardCard ? ` + ${handCardDefinitions[mission.rewardCard].title}` : ""}`;
   card.append(top, name, createProgressMeter(progress.percent), detail);
   return card;
 }
@@ -4964,7 +5206,7 @@ function renderSettlementPoster(winner, bestProperty) {
     ["股票市值", formatMoney(stockGain)],
     ["城市公司", `${ownedCompanyCount(winner)} 座`],
     ["IPO 城市", `${ownedPropertyIndexes(winner.id).filter((index) => state.cityPublic?.[index]).length} 座`],
-    ["收藏城市", `${state.cityCollection?.length || 0}/100`],
+    ["收藏城市", `${state.cityCollection?.length || 0}/${totalPropertyCount()}`],
     ["风险指数", `${riskIndex(winner).score} ${riskLabel(riskIndex(winner).score)}`],
   ].forEach(([label, value]) => poster.appendChild(createGameStat(label, value)));
   return poster;
@@ -5250,6 +5492,9 @@ function renderDealDashboard(player) {
     createGameStat("融资利率", `${Math.round(globalFinancingRate() * 1000) / 10}%`),
     createGameStat("信用额度", formatMoney(availableCredit(player))),
     createGameStat("组合市值", formatMoney(portfolioMarketValue(player))),
+    createGameStat("信用评级", creditRatingFor(player)),
+    createGameStat("商业头衔", businessTitleFor(player)),
+    createGameStat("合同声望", `${contractReputationFor(player)}/100`),
   );
   return dashboard;
 }
@@ -5981,7 +6226,7 @@ function renderDealLedger(showTitle = true) {
 function renderProgress() {
 	  progressPanel.innerHTML = "";
 	  const current = currentPlayer();
-	  const drawerChildren = [renderVictoryProgressCard(current), renderTurnSummaryCard(current), renderGameGoals(current), renderRouteMission(current), renderTurnGoalCard(current)];
+	  const drawerChildren = [renderVictoryProgressCard(current), renderTurnSummaryCard(current), renderGameGoals(current), renderRouteMission(current), renderHiddenMissionCard(current), renderTurnGoalCard(current)];
 
   const tasks = document.createElement("div");
   tasks.className = "task-list";
@@ -6023,7 +6268,7 @@ function renderProgress() {
     createGameStat("最赚钱城市", topCity ? `${spaces[topCity.index].name} ${formatMoney(topCity.revenue)}` : "暂无"),
     createGameStat("旅行地区", current ? `${new Set(current.visitedRegions || []).size}/5` : "0/5"),
     createGameStat("当前贷款", current?.debt ? formatMoney(current.debt) : "无"),
-    createGameStat("城市收藏", `${state.cityCollection?.length || 0}/100`),
+    createGameStat("城市收藏", `${state.cityCollection?.length || 0}/${totalPropertyCount()}`),
     createGameStat("城市公司", current ? `${ownedCompanyCount(current)} 座` : "0 座"),
   );
 
@@ -6146,7 +6391,7 @@ function renderAtlasPanel() {
   all.type = "button";
   all.className = "primary-action atlas-open";
   all.dataset.worldAction = "open-atlas";
-  all.textContent = filtered.length ? `打开 100 地点图鉴 / 当前 ${filtered.length} 个结果` : "打开 100 地点图鉴";
+  all.textContent = atlasOpenButtonLabel(filtered.length);
   wrap.appendChild(all);
   return wrap;
 }
@@ -7914,7 +8159,7 @@ function renderEncyclopedia() {
     }
     list.appendChild(item);
   });
-  count.textContent = `${visibleCount}/100`;
+  count.textContent = `${visibleCount}/${spaces.length}`;
   tools.appendChild(count);
   encyclopediaBody.append(tools, list.children.length ? list : emptyNote(atlasLabel("noMatch")));
   applyDynamicLanguagePatches();
@@ -10130,14 +10375,16 @@ function businessDealOptions(player) {
     .filter(({ index }) => spaces[index]?.type === "property" && !state.mortgages[index])
     .sort((a, b) => takeoverScore(b.index) - takeoverScore(a.index))[0];
   if (takeoverTarget) {
-    const price = takeoverOfferPrice(takeoverTarget.index);
+    const basePrice = takeoverOfferPrice(takeoverTarget.index);
+    const defense = takeoverDefensePremium(takeoverTarget.index);
+    const price = basePrice + defense;
     deals.push({
       action: "takeover",
       index: takeoverTarget.index,
       tone: "build",
       tag: "战略并购",
       title: `收购 ${spaces[takeoverTarget.index].name}`,
-      detail: `${takeoverTarget.seller.name} 持有，估值 ${formatMoney(cityValuation(takeoverTarget.index))}，溢价报价可直接拿下核心资产。`,
+      detail: `${takeoverTarget.seller.name} 持有，估值 ${formatMoney(cityValuation(takeoverTarget.index))}，防守溢价 ${formatMoney(defense)}，现金足够才可强攻。`,
       button: `并购 ${formatMoney(price)}`,
       disabled: !canTakeover(player, takeoverTarget.index),
       reason: businessDealReason("takeover", player, takeoverTarget.index),
@@ -10215,16 +10462,18 @@ function executeTakeover(index) {
   const buyer = currentPlayer();
   if (!canTakeover(buyer, index)) return;
 	  const seller = playerById(state.owners[index]);
-	  const price = takeoverOfferPrice(index);
+	  const basePrice = takeoverOfferPrice(index);
+	  const defense = takeoverDefensePremium(index);
+	  const price = basePrice + defense;
 	  buyer.cash -= price;
 	  seller.cash += price;
 	  breachCoopContractsForProperty(index, seller.id, "并购转手");
 	  state.owners[index] = buyer.id;
   addCityRevenue(index, Math.round(price * 0.1));
   state.status = `${buyer.name} 发起战略并购，用 ${formatMoney(price)} 拿下 ${spaces[index].name}。`;
-  logEvent(`${buyer.name} 从 ${seller.name} 手中并购 ${spaces[index].name}。`);
-  addNews("并购大战", `${buyer.name} 溢价收购 ${spaceDisplayName(index)}，控制权转移。`, "deal");
-  logDeal("战略并购", `${spaces[index].name} 控制权转移给 ${buyer.name}`, price, "build");
+  logEvent(`${buyer.name} 从 ${seller.name} 手中并购 ${spaces[index].name}，防守溢价 ${formatMoney(defense)}。`);
+  addNews("并购大战", `${buyer.name} 支付 ${formatMoney(price)} 收购 ${spaceDisplayName(index)}，其中防守溢价 ${formatMoney(defense)}。`, "deal");
+  logDeal("战略并购", `${spaces[index].name} 控制权转移给 ${buyer.name} / 防守 ${formatMoney(defense)}`, price, "build");
   showEventBurst(`${spaces[index].name} 并购完成`, "buy");
   checkTasks(buyer);
   renderPropertyDialog(index);
@@ -10340,7 +10589,7 @@ function canTakeover(player, index) {
     seller.id !== player.id &&
     spaces[index]?.type === "property" &&
     !state.mortgages[index] &&
-    player.cash >= takeoverOfferPrice(index),
+    player.cash >= takeoverFinalPrice(index),
   );
 }
 
@@ -10388,7 +10637,7 @@ function businessDealReason(action, player, index) {
   }
   if (action === "takeover") {
     if (!state.owners[index] || state.owners[index] === player.id) return "没有可并购卖方";
-    return player.cash >= takeoverOfferPrice(index) ? "" : "现金不足";
+    return player.cash >= takeoverFinalPrice(index) ? "" : "现金不足，防守方抬价";
   }
   if (action === "bond") {
     if (ownedPropertyIndexes(player.id).length < 2) return "至少需要 2 座城市";
@@ -10452,6 +10701,21 @@ function capitalObligation(amount) {
 
 function takeoverOfferPrice(index) {
   return Math.ceil((cityValuation(index) * 1.28) / 10) * 10;
+}
+
+function takeoverDefensePremium(index) {
+  const seller = playerById(state.owners[index]);
+  if (!seller || spaces[index]?.type !== "property") return 0;
+  const levelShield = (state.levels[index] || 0) * 28;
+  const companyShield = cityCompanyCount(index) * 42;
+  const headquartersShield = isHeadquarter(seller.id, index) ? 120 : 0;
+  const reputationShield = contractReputationFor(seller) >= 78 ? 60 : 0;
+  const revengeHeat = currentPlayer()?.grudgeTarget === seller.id ? 40 : 0;
+  return Math.round((levelShield + companyShield + headquartersShield + reputationShield + revengeHeat) / 10) * 10;
+}
+
+function takeoverFinalPrice(index) {
+  return takeoverOfferPrice(index) + takeoverDefensePremium(index);
 }
 
 function takeoverScore(index) {
@@ -10599,8 +10863,13 @@ function stockPrice(index) {
   const publicHeat = state.cityPublic?.[index] ? 24 : 0;
   const ratingHeat = { C: -10, B: 0, A: 10, S: 22, SS: 36 }[cityRating(index)] || 0;
   const headquartersHeat = isHeadquarter(state.owners[index], index) ? 14 : 0;
-  const crashFactor = currentMarket().id === "stockCrash" ? 0.72 : 1;
-  return Math.max(20, Math.round(((space.price * 0.22 + revenueHeat + levelHeat + fundingHeat + companyHeat + publicHeat + ratingHeat + headquartersHeat) * crashFactor) / 5) * 5);
+  const marketFactor = {
+    stockCrash: 0.72,
+    blackSwan: 0.86,
+    limitUp: 1.35,
+    limitDown: 0.68,
+  }[currentMarket().id] || 1;
+  return Math.max(20, Math.round(((space.price * 0.22 + revenueHeat + levelHeat + fundingHeat + companyHeat + publicHeat + ratingHeat + headquartersHeat) * marketFactor) / 5) * 5);
 }
 
 function currentRules() {
@@ -10699,6 +10968,19 @@ function normalizeStocks(stocks) {
     }
   });
   return result;
+}
+
+function normalizeSpyIntel(intel) {
+  if (!intel || typeof intel !== "object") return null;
+  return {
+    targetId: typeof intel.targetId === "string" ? intel.targetId : "",
+    round: Math.max(1, Number(intel.round) || 1),
+    handCount: Math.max(0, Number(intel.handCount) || 0),
+    shares: Math.max(0, Number(intel.shares) || 0),
+    debt: Math.max(0, Number(intel.debt) || 0),
+    contracts: Math.max(0, Number(intel.contracts) || 0),
+    risk: clamp(Number(intel.risk) || 0, 0, 100),
+  };
 }
 
 function createFinanceAccount() {
@@ -10953,6 +11235,85 @@ function normalizeGoals(goals) {
   });
 }
 
+function hiddenMissionTemplates() {
+  return [
+    { id: "finance3", title: "暗中控制 3 座金融城市", kind: "finance", target: 3, rewardCash: 360, rewardCard: "spyBriefcase" },
+    { id: "pressureRival", title: "让一名对手债务超过 ¥1000", kind: "pressure", target: 1000, rewardCash: 320, rewardCard: "freezeRival" },
+    { id: "stockWhale", title: "悄悄囤到 8 股城市股票", kind: "stock", target: 8, rewardCash: 300, rewardCard: "comebackCard" },
+    { id: "contractWeb", title: "建立 2 份合作合同网络", kind: "contract", target: 2, rewardCash: 300, rewardCard: "patentVoucher" },
+    { id: "industryChain", title: "组成金融+科技+交通产业链", kind: "chain", target: 3, rewardCash: 380, rewardCard: "buildPermit" },
+  ];
+}
+
+function createHiddenMissions(players) {
+  const templates = hiddenMissionTemplates();
+  return (players || []).map((player, index) => ({
+    ...templates[index % templates.length],
+    playerId: player.id,
+    completed: false,
+  }));
+}
+
+function normalizeHiddenMissions(missions, players) {
+  const fallback = createHiddenMissions(players || []);
+  if (!Array.isArray(missions)) return fallback;
+  const templates = hiddenMissionTemplates();
+  return (players || []).map((player, index) => {
+    const saved = missions.find((mission) => mission?.playerId === player.id);
+    const template = templates.find((mission) => mission.id === saved?.id) || templates[index % templates.length];
+    return {
+      ...template,
+      playerId: player.id,
+      completed: Boolean(saved?.completed),
+    };
+  });
+}
+
+function hiddenMissionFor(player) {
+  if (!player) return null;
+  state.hiddenMissions = normalizeHiddenMissions(state.hiddenMissions, state.players);
+  return state.hiddenMissions.find((mission) => mission.playerId === player.id) || null;
+}
+
+function hiddenMissionProgress(mission, player) {
+  if (!mission || !player) return { value: 0, percent: 0, label: "未开始" };
+  let value = 0;
+  if (mission.kind === "finance") {
+    value = ownedPropertyIndexes(player.id).filter((index) => spaces[index]?.specialty === "finance").length;
+  } else if (mission.kind === "pressure") {
+    value = activePlayers()
+      .filter((opponent) => opponent.id !== player.id)
+      .reduce((best, opponent) => Math.max(best, opponent.debt || 0, riskIndex(opponent).score * 14), 0);
+  } else if (mission.kind === "stock") {
+    value = totalStockShares(player);
+  } else if (mission.kind === "contract") {
+    value = coopContractsForPlayer(player).filter((contract) => contract.status === "active").length;
+  } else if (mission.kind === "chain") {
+    const owned = ownedPropertyIndexes(player.id);
+    value = [
+      owned.some((index) => spaces[index]?.specialty === "finance"),
+      owned.some((index) => spaces[index]?.specialty === "tech"),
+      owned.some((index) => spaces[index]?.airport || spaces[index]?.specialty === "transit"),
+    ].filter(Boolean).length;
+  }
+  value = Math.round(value);
+  const percent = clamp((value / Math.max(1, mission.target)) * 100, 0, 100);
+  return { value, percent, label: `${Math.min(value, mission.target)}/${mission.target}` };
+}
+
+function completeHiddenMissions(player) {
+  const mission = hiddenMissionFor(player);
+  if (!mission || mission.completed) return;
+  const progress = hiddenMissionProgress(mission, player);
+  if (progress.percent < 100) return;
+  mission.completed = true;
+  player.cash += mission.rewardCash;
+  if (mission.rewardCard) grantPlayerCard(player, mission.rewardCard);
+  addNews("隐藏任务完成", `${player.name} 完成「${mission.title}」，获得 ${formatMoney(mission.rewardCash)}。`, "gain");
+  logEvent(`${player.name} 完成隐藏任务「${mission.title}」。`);
+  showEventBurst(`隐藏任务 +${formatMoney(mission.rewardCash)}`, "gain");
+}
+
 function goalProgress(goal, player) {
   if (!player) return { percent: 0, label: "等待开始" };
   if (goal.type === "netWorth") {
@@ -11135,6 +11496,17 @@ function normalizeNewsItem(item) {
     title,
     detail,
     tone: ["market", "deal", "gain", "debt"].includes(item.tone) ? item.tone : "market",
+    round: Math.max(1, Number(item.round) || 1),
+  };
+}
+
+function normalizeMarketEventHistoryItem(item) {
+  if (!item || typeof item !== "object") return null;
+  const id = marketDefinitions[item.id] ? item.id : "steady";
+  return {
+    id,
+    title: String(item.title || marketDefinitions[id].title).slice(0, 24),
+    detail: String(item.detail || marketDefinitions[id].detail).slice(0, 82),
     round: Math.max(1, Number(item.round) || 1),
   };
 }
@@ -11858,7 +12230,8 @@ function victoryConditionLabel() {
 
 function crisisCountdownLabel() {
   const market = currentMarket();
-  if (market.id === "crisis" || market.id === "stockCrash") return "危机进行中";
+  if (market.id === "crisis" || market.id === "stockCrash" || market.id === "blackSwan" || market.id === "limitDown") return "危机进行中";
+  if (market.id === "limitUp") return "涨停行情中";
   return `${state.market?.turnsLeft || 1} 轮后换市`;
 }
 
@@ -11866,7 +12239,8 @@ function rotateMarket() {
   state.market = normalizeMarket(state.market);
   state.market.turnsLeft -= 1;
   if (state.market.turnsLeft > 0) return;
-  const ids = Object.keys(marketDefinitions).filter((id) => id !== state.market.id);
+  const shockMarkets = ["blackSwan", "limitUp", "limitDown"];
+  const ids = Object.keys(marketDefinitions).filter((id) => id !== state.market.id && !shockMarkets.includes(id));
   const nextId = shuffle(ids)[0] || "steady";
   state.market = createMarketState(nextId);
   const market = currentMarket();
@@ -11874,6 +12248,24 @@ function rotateMarket() {
   logEvent(`市场风向变为「${market.title}」。`);
   addNews("商业新闻头条", `${market.title}：${market.detail}`, market.id === "crisis" || market.id === "stockCrash" ? "debt" : "market");
   showEventBurst(market.title, "build");
+}
+
+function maybeTriggerBlackSwanEvent() {
+  state.marketEventHistory = Array.isArray(state.marketEventHistory) ? state.marketEventHistory : [];
+  state.lastBlackSwanRound = Math.max(0, Number(state.lastBlackSwanRound) || 0);
+  if (state.round < 5 || state.round - state.lastBlackSwanRound < 5) return;
+  if (state.round % 6 !== 0 && Math.random() > 0.35) return;
+  const ids = ["blackSwan", "limitUp", "limitDown"];
+  const id = ids[(state.round + state.marketEventHistory.length) % ids.length];
+  state.market = createMarketState(id);
+  state.market.turnsLeft = 2;
+  state.lastBlackSwanRound = state.round;
+  const market = currentMarket();
+  const event = { id, title: market.title, detail: market.detail, round: state.round };
+  state.marketEventHistory = [event, ...state.marketEventHistory].slice(0, 8);
+  logEvent(`突发市场事件：「${market.title}」影响全球交易。`);
+  addNews("黑天鹅观察", `${market.title}：${market.detail}`, id === "limitUp" ? "gain" : "debt");
+  showEventBurst(market.title, id === "limitUp" ? "gain" : "pay");
 }
 
 function encodeShareCode(gameState) {
@@ -11949,6 +12341,7 @@ function checkTasks(player) {
   });
   completeGoalsIfReady(player);
   completeMissionIfReady(player);
+  completeHiddenMissions(player);
 }
 
 function isTaskComplete(player, taskId) {
@@ -12081,6 +12474,14 @@ function payBank(player, amount, reason) {
   }
 }
 
+function rememberRentGrudge(payer, receiver, paid) {
+  if (!payer || !receiver || paid <= 0) return;
+  payer.grudgeTarget = receiver.id;
+  if (payer.isAI && paid >= 180) {
+    addNews("对手记仇", `${payer.name} 被 ${receiver.name} 收走高租，之后更可能抢他的城市。`, "debt");
+  }
+}
+
 function payPlayer(payer, receiver, amount, reason) {
   if (reason.includes("租金") && payer.rentRisk) {
     payer.rentRisk = false;
@@ -12111,7 +12512,7 @@ function payPlayer(payer, receiver, amount, reason) {
   const paid = Math.min(payer.cash, amount);
   payer.cash -= paid;
   receiver.cash += paid;
-  if (reason.includes("租金")) payer.grudgeTarget = receiver.id;
+  if (reason.includes("租金")) rememberRentGrudge(payer, receiver, paid);
   if (reason.includes("租金") && paid > 0) {
     awardSkillXp(receiver, Math.min(26, Math.max(8, Math.round(paid / 18))), "收租");
   }
@@ -12434,13 +12835,16 @@ function advanceToNextPlayer() {
     if (state.currentPlayer === 0) {
       state.round += 1;
       rotateMarket();
+      maybeTriggerBlackSwanEvent();
       applyBankInterest();
 	      applyDebtInterest();
 	      applyShortBorrowInterest();
+	      applyMarginCalls();
 	      applyCitySystems();
 	      applyCoopContracts();
 	      captureStockTrends();
       advanceRouteMission();
+      activePlayers().forEach(completeHiddenMissions);
       createQuarterlyReportIfNeeded();
       checkTurnLimit();
     }
@@ -12502,6 +12906,30 @@ function applyShortBorrowInterest() {
     logEvent(`${player.name} 借空仓位产生 ${interest} 借空利息。`);
     logBank("借空利息", `${player.name} 空头市值 ${formatMoney(totalShortLiability(player))}`, interest, "interest");
     if (riskIndex(player).score >= 82) payBank(player, 60, "做空保证金压力");
+  });
+}
+
+function applyMarginCalls() {
+  activePlayers().forEach((player) => {
+    const finance = financeFor(player);
+    const risk = riskIndex(player).score;
+    const marketPanic = ["blackSwan", "limitDown", "stockCrash"].includes(currentMarket().id);
+    if (finance.marginDebt <= 0 || risk < (marketPanic ? 78 : 88)) return;
+    const call = Math.min(player.cash, Math.max(60, Math.round(finance.marginDebt * (marketPanic ? 0.12 : 0.08))));
+    if (call > 0) {
+      player.cash -= call;
+      player.debt = Math.max(0, (player.debt || 0) - call);
+      finance.marginDebt = Math.max(0, finance.marginDebt - call);
+      logEvent(`${player.name} 触发杠杆保证金追缴，支付 ${formatMoney(call)}。`);
+      logBank("杠杆爆仓预警", `${player.name} 风险 ${risk}，系统强制降杠杆`, call, "repay");
+      addNews("杠杆爆仓预警", `${player.name} 因高杠杆被追缴保证金 ${formatMoney(call)}。`, "debt");
+      showEventBurst("保证金追缴", "pay");
+    }
+    if (player.cash < 120 && !player.comebackReady && !player.cards.includes("comebackCard")) {
+      player.comebackReady = true;
+      grantPlayerCard(player, "comebackCard");
+      addNews("翻盘机会", `${player.name} 现金吃紧，获得一张高风险反转卡。`, "gain");
+    }
   });
 }
 
@@ -12929,7 +13357,7 @@ function netWorth(player) {
 }
 
 function boardGridPosition(index) {
-  const side = BOARD_GRID_SIZE;
+  const side = boardGridSize();
   const rightStart = side;
   const bottomStart = side + (side - 1);
   const leftStart = bottomStart + (side - 1);
@@ -13481,7 +13909,7 @@ function createDealValuationCard(index) {
   rows.className = "deal-metric-grid";
   rows.append(
     createDealMetric("融资轮次", `${cityFundingRounds(index)}/${CAPITAL_ROUND_LIMIT}`),
-    createDealMetric("并购报价", formatMoney(takeoverOfferPrice(index))),
+    createDealMetric("最终并购价", formatMoney(takeoverFinalPrice(index))),
     createDealMetric("股息预期", formatMoney(Math.round(Math.min(32, (state.cityRevenue[index] || 0) * 0.03 + stockPrice(index) * 0.02)))),
   );
   const detail = document.createElement("small");
@@ -13592,6 +14020,32 @@ function createGameStat(label, value) {
   number.textContent = value;
   stat.append(name, number);
   return stat;
+}
+
+function creditRatingFor(player) {
+  if (!player) return "B";
+  const risk = riskIndex(player).score;
+  const reputation = contractReputationFor(player);
+  const debtRatio = (player.debt || 0) / Math.max(1, netWorth(player) + (player.debt || 0));
+  const score = clamp(100 - risk * 0.55 + (reputation - 70) * 0.25 - debtRatio * 28, 0, 100);
+  if (score >= 88) return "AAA";
+  if (score >= 76) return "AA";
+  if (score >= 62) return "A";
+  if (score >= 46) return "B";
+  return "C";
+}
+
+function businessTitleFor(player) {
+  if (!player) return "观察者";
+  const stockValue = Object.entries(player.stocks || {}).reduce((total, [index, shares]) => total + stockPrice(Number(index)) * Number(shares || 0), 0);
+  const activeContracts = coopContractsForPlayer(player).filter((contract) => contract.status === "active").length;
+  const publicCities = ownedPropertyIndexes(player.id).filter((index) => state.cityPublic?.[index]).length;
+  if ((player.debt || 0) >= 1200 && riskIndex(player).score < 78) return "债务大师";
+  if (stockValue >= 1200) return "股神";
+  if (activeContracts >= 3) return "合同操盘手";
+  if (publicCities >= 2) return "上市领航者";
+  if ((state.dealLedger || []).filter((deal) => deal.detail?.includes(player.name)).length >= 5) return "交易大亨";
+  return playerTitle(player);
 }
 
 function playerTitle(player) {
