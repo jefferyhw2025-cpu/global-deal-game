@@ -132,6 +132,16 @@ const languageDefinitions = {
     startCash: "起始现金",
     cancel: "取消",
     start: "开始",
+    close: "关闭",
+    viewBoard: "查看棋盘",
+    signContract: "签下合同",
+    winnerEyebrow: "比赛结束",
+    championTitle: "冠军诞生",
+    tutorialEyebrow: "新手教学",
+    tutorialIntroTitle: "先玩一局教学局",
+    continueWithoutTutorial: "先自己玩",
+    startTutorialGame: "开始教学局",
+    atlasEyebrow: "世界图鉴",
     round: (round) => `第 ${round} 轮`,
     readyStatus: (name) => `轮到 ${name}，准备掷骰。`,
     gameStarted: "新棋局开始。",
@@ -258,6 +268,16 @@ const languageDefinitions = {
     startCash: "Starting Cash",
     cancel: "Cancel",
     start: "Start",
+    close: "Close",
+    viewBoard: "View Board",
+    signContract: "Sign Contract",
+    winnerEyebrow: "Game Over",
+    championTitle: "Champion Crowned",
+    tutorialEyebrow: "Tutorial",
+    tutorialIntroTitle: "Play One Guided Game First",
+    continueWithoutTutorial: "Play Freely",
+    startTutorialGame: "Start Tutorial",
+    atlasEyebrow: "World Atlas",
     round: (round) => `Round ${round}`,
     readyStatus: (name) => `${name}'s turn. Roll the dice.`,
     gameStarted: "New game started.",
@@ -384,6 +404,16 @@ const languageDefinitions = {
     startCash: "Dinero Inicial",
     cancel: "Cancelar",
     start: "Empezar",
+    close: "Cerrar",
+    viewBoard: "Ver Tablero",
+    signContract: "Firmar Contrato",
+    winnerEyebrow: "Fin de Partida",
+    championTitle: "Campeón",
+    tutorialEyebrow: "Tutorial",
+    tutorialIntroTitle: "Juega Una Partida Guiada Primero",
+    continueWithoutTutorial: "Jugar Libre",
+    startTutorialGame: "Iniciar Tutorial",
+    atlasEyebrow: "Atlas Mundial",
     round: (round) => `Ronda ${round}`,
     readyStatus: (name) => `Turno de ${name}. Tira los dados.`,
     gameStarted: "Nueva partida iniciada.",
@@ -2600,12 +2630,23 @@ function renderStaticLabels() {
   updateDifficultyHint();
   cancelSetupButton.textContent = uiTextForLanguage(language, "cancel");
   startGameButton.textContent = uiTextForLanguage(language, "start");
+  closePropertyDialogButton.textContent = uiTextForLanguage(language, "close");
+  cancelContractButton.textContent = uiTextForLanguage(language, "cancel");
+  confirmContractButton.textContent = uiTextForLanguage(language, "signContract");
+  closeWinnerButton.textContent = uiTextForLanguage(language, "viewBoard");
+  winnerNewGameButton.textContent = uiTextForLanguage(language, "newGame");
+  continueWithoutTutorialButton.textContent = uiTextForLanguage(language, "continueWithoutTutorial");
+  startTutorialButton.textContent = uiTextForLanguage(language, "startTutorialGame");
+  tutorialIntroEyebrow.textContent = uiTextForLanguage(language, "tutorialEyebrow");
+  tutorialIntroTitle.textContent = uiTextForLanguage(language, "tutorialIntroTitle");
+  winnerTitle.textContent = uiTextForLanguage(language, "championTitle");
+  winnerDialog?.querySelector(".winner-hero .eyebrow")?.replaceChildren(uiTextForLanguage(language, "winnerEyebrow"));
   newGameButton.setAttribute("aria-label", uiTextForLanguage(language, "newGame"));
   newGameButton.title = uiTextForLanguage(language, "newGame");
   const encyclopediaEyebrow = encyclopediaDialog?.querySelector(".eyebrow");
   const encyclopediaTitle = encyclopediaDialog?.querySelector("h2");
   if (encyclopediaEyebrow) {
-    encyclopediaEyebrow.textContent = language === "es" ? "Atlas Mundial" : "World Atlas";
+    encyclopediaEyebrow.textContent = uiTextForLanguage(language, "atlasEyebrow");
   }
   if (encyclopediaTitle) {
     encyclopediaTitle.textContent = translateDynamicText("城市图鉴", language);
@@ -3160,6 +3201,48 @@ const dynamicPhraseTranslations = {
   },
 };
 
+const chineseTextRestoreMap = (() => {
+  const entries = new Map();
+  const add = (foreignText, chineseText) => {
+    if (!foreignText || !chineseText || foreignText === chineseText) return;
+    entries.set(String(foreignText), String(chineseText));
+  };
+  Object.entries(languageDefinitions.zh).forEach(([key, chineseValue]) => {
+    if (typeof chineseValue !== "string") return;
+    ["en", "es"].forEach((language) => {
+      const translatedValue = languageDefinitions[language]?.[key];
+      if (typeof translatedValue === "string") add(translatedValue, chineseValue);
+    });
+  });
+  Object.values(dynamicPhraseTranslations).forEach((pack) => {
+    Object.entries(pack).forEach(([chineseText, translatedText]) => add(translatedText, chineseText));
+  });
+  return Array.from(entries.entries()).sort((a, b) => b[0].length - a[0].length);
+})();
+
+function restoreChineseText(text) {
+  const source = String(text || "");
+  if (!source.trim()) return text;
+  const trimmed = source.trim();
+  let restored = chineseTextRestoreMap.find(([foreignText]) => foreignText === trimmed)?.[1] || "";
+  if (!restored) {
+    restored = source
+      .replace(/^Round (\d+)$/, "第 $1 轮")
+      .replace(/^Ronda (\d+)$/, "第 $1 轮")
+      .replace(/^(\d+) Rounds$/, "$1 轮")
+      .replace(/^(\d+) rondas$/, "$1 轮")
+      .replace(/^Current: (.+) \/ Map (\d+)%$/, "当前位置：$1 / 地图 $2%")
+      .replace(/^Actual: (.+) \/ Mapa (\d+)%$/, "当前位置：$1 / 地图 $2%");
+  }
+  if (!restored || restored === source) {
+    restored = source;
+    chineseTextRestoreMap.forEach(([foreignText, chineseText]) => {
+      if (restored.includes(foreignText)) restored = restored.split(foreignText).join(chineseText);
+    });
+  }
+  return restored || text;
+}
+
 function translateDynamicText(text, language = currentLanguage()) {
   if (language === "zh" || !text || !/[\u4e00-\u9fff]/.test(text)) return text;
   const pack = dynamicPhraseTranslations[language] || {};
@@ -3235,7 +3318,6 @@ function normalizeLocalizedPunctuation(text) {
 
 function applyDynamicLanguagePatches() {
   const language = currentLanguage();
-  if (language === "zh") return;
   const scopes = [
     boardEl,
     panelTabs,
@@ -3250,6 +3332,18 @@ function applyDynamicLanguagePatches() {
     winnerDialog,
     tutorialDialog,
   ].filter(Boolean);
+  if (language === "zh") {
+    scopes.forEach((scope) => {
+      const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((node) => {
+        const next = restoreChineseText(node.nodeValue);
+        if (next !== node.nodeValue) node.nodeValue = next;
+      });
+    });
+    return;
+  }
   scopes.forEach((scope) => {
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
     const nodes = [];
@@ -3731,10 +3825,29 @@ function render() {
   renderLog();
   roundCounter.textContent = uiText("round", state.round);
   statusLine.textContent = state.status;
+  refreshOpenLocalizedDialogs();
   applyDynamicLanguagePatches();
   saveGame();
   scheduleAutomation();
   renderWinnerDialog();
+}
+
+function refreshOpenLocalizedDialogs() {
+  if (propertyDialog?.open && Number.isInteger(state.selectedPropertyIndex) && spaces[state.selectedPropertyIndex]?.type === "property") {
+    renderPropertyDialog(state.selectedPropertyIndex);
+  }
+  if (contractDialog?.open) {
+    const partner = contractSigningPlayer();
+    const owner = Number.isInteger(pendingCoopContractIndex) ? playerById(state.owners[pendingCoopContractIndex]) : null;
+    const negotiationMode = normalizeContractNegotiationMode(document.getElementById("contractNegotiationMode")?.value || "standard");
+    const clause = document.getElementById("contractClauseInput")?.value || "";
+    const terms = Number.isInteger(pendingCoopContractIndex)
+      ? collectContractCustomTerms(pendingCoopContractIndex, negotiationMode, partner, owner)
+      : {};
+    renderCoopContractDialog(pendingCoopContractIndex, partner, { clause, negotiationMode, terms });
+  }
+  if (encyclopediaDialog?.open) renderEncyclopedia();
+  if (tutorialDialog?.open) renderTutorialIntro();
 }
 
 function renderBoard() {
