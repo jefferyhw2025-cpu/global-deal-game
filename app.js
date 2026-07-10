@@ -73,8 +73,11 @@ const DEFAULT_DRAWER_OPEN = {
   "panel:save": false,
   "panel:progress": false,
   "panel:world": true,
+  "panel:quality": true,
   "panel:share": false,
   "panel:assets": true,
+  "panel:contractInbox": true,
+  "panel:contractTemplates": false,
   "panel:log": false,
   "property:建设": true,
   "property:公司": false,
@@ -2440,6 +2443,8 @@ coopPanel.addEventListener("click", handleTradeClick);
 sharePanel.addEventListener("click", handleShareClick);
 assetsPanel.addEventListener("click", handleAssetClick);
 worldPanel.addEventListener("click", handleWorldPanelClick);
+worldPanel.addEventListener("input", handleWorldPanelInput);
+worldPanel.addEventListener("change", handleWorldPanelInput);
 closeWinnerButton.addEventListener("click", closeWinnerDialog);
 winnerNewGameButton.addEventListener("click", () => {
   winnerDialog.close();
@@ -2937,6 +2942,47 @@ const dynamicPhraseTranslations = {
     "甲方保留": "Party A keeps",
     "提案": "proposal",
     "违约": "breach",
+    "完整模式 / 质检": "Full Mode / QA",
+    "简洁模式 / 质检": "Simple Mode / QA",
+    "切到完整": "Full Mode",
+    "切到简洁": "Simple Mode",
+    "语言质检": "Language QA",
+    "视觉检查": "Visual Check",
+    "重看教程": "Tutorial",
+    "还没有检查。可以一键扫描语言残留、文字溢出和明显遮挡。": "No check yet. Scan language residue, overflow, and major overlap in one tap.",
+    "每回合小结": "Turn Summary",
+    "本轮收入": "Round Income",
+    "本轮支出": "Round Costs",
+    "净变化": "Net Change",
+    "资产雷达图": "Asset Radar",
+    "现金": "Cash",
+    "信用": "Credit",
+    "安全": "Safety",
+    "涨幅最高": "Top Gainer",
+    "跌幅最大": "Top Loser",
+    "最热门": "Most Active",
+    "股价": "Stock Price",
+    "合同收件箱": "Contract Inbox",
+    "请求 / 审批 / 状态": "Requests / Approval / Status",
+    "合同模板分类": "Contract Templates",
+    "类型 / 风险 / 城市": "Types / Risk / Cities",
+    "暂时没有合同请求。对手买下城市后，这里会集中显示请求和审批状态。": "No contract requests yet. Once rivals buy cities, requests and approval status appear here.",
+    "待你审批": "Needs You",
+    "待审批": "Pending",
+    "已生效": "Active",
+    "被拒绝": "Rejected",
+    "金融分红合同": "Finance Dividend Contract",
+    "旅游收益合同": "Tourism Revenue Contract",
+    "科技孵化合同": "Tech Incubator Contract",
+    "航线联营合同": "Air Route Joint Venture",
+    "当前": "Current",
+    "个项目": "projects",
+    "没有找到符合条件的城市。": "No matching cities.",
+    "打开 100 地点图鉴": "Open 100-Location Atlas",
+    "个结果": "results",
+    "已打开教程中心，可重新开始教学局或查看按钮说明。": "Tutorial center opened. Restart the tutorial game or review button help.",
+    "对方还价：提高入场费或保留收益，等待你同意": "Rival counteroffer: higher entry or kept income, awaiting your approval",
+    "合同还价": "Contract Counteroffer",
   },
   es: {
     "回合行动": "Turno",
@@ -3198,6 +3244,47 @@ const dynamicPhraseTranslations = {
     "甲方保留": "Parte A conserva",
     "提案": "propuesta",
     "违约": "incumplimiento",
+    "完整模式 / 质检": "Modo Completo / QA",
+    "简洁模式 / 质检": "Modo Simple / QA",
+    "切到完整": "Modo Completo",
+    "切到简洁": "Modo Simple",
+    "语言质检": "Revisar Idioma",
+    "视觉检查": "Revisar Vista",
+    "重看教程": "Tutorial",
+    "还没有检查。可以一键扫描语言残留、文字溢出和明显遮挡。": "Sin revisión. Escanea idioma, desbordes y solapes con un toque.",
+    "每回合小结": "Resumen de Turno",
+    "本轮收入": "Ingreso",
+    "本轮支出": "Costos",
+    "净变化": "Cambio Neto",
+    "资产雷达图": "Radar de Activos",
+    "现金": "Efectivo",
+    "信用": "Crédito",
+    "安全": "Seguridad",
+    "涨幅最高": "Mayor Subida",
+    "跌幅最大": "Mayor Caída",
+    "最热门": "Más Activa",
+    "股价": "Precio",
+    "合同收件箱": "Bandeja de Contratos",
+    "请求 / 审批 / 状态": "Solicitudes / Aprobación / Estado",
+    "合同模板分类": "Plantillas de Contrato",
+    "类型 / 风险 / 城市": "Tipos / Riesgo / Ciudades",
+    "暂时没有合同请求。对手买下城市后，这里会集中显示请求和审批状态。": "Sin solicitudes. Cuando rivales compren ciudades, aparecerán solicitudes y estados.",
+    "待你审批": "Necesita Tu OK",
+    "待审批": "Pendiente",
+    "已生效": "Activo",
+    "被拒绝": "Rechazado",
+    "金融分红合同": "Contrato Financiero",
+    "旅游收益合同": "Contrato Turístico",
+    "科技孵化合同": "Contrato Tecnológico",
+    "航线联营合同": "Ruta Aérea Conjunta",
+    "当前": "Actual",
+    "个项目": "proyectos",
+    "没有找到符合条件的城市。": "No hay ciudades.",
+    "打开 100 地点图鉴": "Abrir Atlas de 100 Lugares",
+    "个结果": "resultados",
+    "已打开教程中心，可重新开始教学局或查看按钮说明。": "Tutorial abierto. Puedes reiniciar la partida guiada o revisar botones.",
+    "对方还价：提高入场费或保留收益，等待你同意": "Contraoferta rival: más entrada o retención, espera tu aprobación",
+    "合同还价": "Contraoferta",
   },
 };
 
@@ -3541,6 +3628,20 @@ function normalizeLoadedPlayerName(player, index = 0) {
   return name;
 }
 
+function normalizeAuditReport(report) {
+  if (!report || typeof report !== "object") {
+    return { checked: false, type: "", title: "质检", summary: "", tone: "neutral", count: 0 };
+  }
+  return {
+    checked: Boolean(report.checked),
+    type: ["language", "visual"].includes(report.type) ? report.type : "",
+    title: String(report.title || "质检").slice(0, 12),
+    summary: String(report.summary || "").slice(0, 160),
+    tone: ["safe", "warn", "neutral"].includes(report.tone) ? report.tone : "neutral",
+    count: Math.max(0, Number(report.count) || 0),
+  };
+}
+
 function createInitialGame(config = {}) {
   const playerCount = Number(config.playerCount || 4);
   const language = normalizeLanguage(config.language || "zh");
@@ -3633,13 +3734,17 @@ function createInitialGame(config = {}) {
     highestRent: null,
     pathHighlight: null,
     tileFlash: null,
+    auditReport: null,
+    citySearch: "",
+    cityRegionFilter: "all",
+    cityOwnerFilter: "all",
     drawerOpen: createDefaultDrawerOpen(),
     sidePanelMode: "deal",
     sidePanelCollapsed: false,
     mapZoom: 1,
     worldPanelMode: "atlas",
     selectedPropertyIndex: null,
-    config: { playerCount, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, ...rules },
+    config: { playerCount, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, simpleMode: Boolean(config.simpleMode), ...rules },
   };
 }
 
@@ -3713,6 +3818,7 @@ function loadGame() {
       theme: themeDefinitions[saved.config?.theme] ? saved.config.theme : "city",
       language: normalizeLanguage(saved.config?.language || "zh"),
       tutorialMode: savedTutorialMode,
+      simpleMode: Boolean(saved.config?.simpleMode),
       ...rules,
     };
     saved.mortgages = Array.isArray(saved.mortgages) && saved.mortgages.length === spaces.length
@@ -3767,6 +3873,10 @@ function loadGame() {
     saved.highestRent = normalizeHighestRent(saved.highestRent);
     saved.pathHighlight = Number.isInteger(saved.pathHighlight) ? saved.pathHighlight : null;
     saved.tileFlash = normalizeTileFlash(saved.tileFlash);
+    saved.auditReport = normalizeAuditReport(saved.auditReport);
+    saved.citySearch = String(saved.citySearch || "").slice(0, 40);
+    saved.cityRegionFilter = ["all", ...new Set(spaces.filter((space) => space.type === "property").map((space) => space.region))].includes(saved.cityRegionFilter) ? saved.cityRegionFilter : "all";
+    saved.cityOwnerFilter = ["all", "mine", "rival", "free"].includes(saved.cityOwnerFilter) ? saved.cityOwnerFilter : "all";
     saved.drawerOpen = normalizeDrawerOpen(saved.drawerOpen);
     saved.sidePanelMode = SIDE_PANEL_MODES.includes(saved.sidePanelMode) ? saved.sidePanelMode : "deal";
     saved.sidePanelCollapsed = Boolean(saved.sidePanelCollapsed);
@@ -4051,7 +4161,7 @@ function renderPanelTabs() {
 function sidePanelDrawerDefinitions() {
   const current = currentPlayer();
   const ownedCount = current ? ownedPropertyIndexes(current.id).length : 0;
-  return [
+  const drawers = [
     {
       id: "deal",
       label: uiText("sideDeal"),
@@ -4108,6 +4218,10 @@ function sidePanelDrawerDefinitions() {
       panels: () => [logPanel],
     },
   ];
+  if (state.config?.simpleMode) {
+    return drawers.filter((drawer) => ["deal", "coop", "player", "world"].includes(drawer.id));
+  }
+  return drawers;
 }
 
 function renderSidePanelVisibility() {
@@ -4124,7 +4238,7 @@ function renderSidePanelVisibility() {
 
   Object.entries(groups).forEach(([group, panels]) => {
     panels.forEach((panel) => {
-      if (panel) panel.hidden = collapsed || group !== mode;
+      if (panel) panel.hidden = collapsed || group !== mode || (state.config?.simpleMode && !["deal", "coop", "player", "world"].includes(group));
     });
   });
 }
@@ -4489,6 +4603,71 @@ function renderBusinessIntelPanel() {
   return panel;
 }
 
+function renderInterfaceQualityPanel() {
+  const panel = document.createElement("article");
+  panel.className = "quality-panel";
+  const top = document.createElement("div");
+  top.className = "quality-panel-top";
+  const title = document.createElement("strong");
+  title.textContent = state.config?.simpleMode ? "简洁模式 / 质检" : "完整模式 / 质检";
+  const mode = document.createElement("button");
+  mode.type = "button";
+  mode.dataset.worldAction = "toggle-simple";
+  mode.textContent = state.config?.simpleMode ? "切到完整" : "切到简洁";
+  top.append(title, mode);
+
+  const actions = document.createElement("div");
+  actions.className = "quality-actions";
+  [
+    ["language-audit", "语言质检"],
+    ["visual-audit", "视觉检查"],
+    ["replay-tutorial", "重看教程"],
+  ].forEach(([action, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.worldAction = action;
+    button.textContent = label;
+    actions.appendChild(button);
+  });
+
+  const report = normalizeAuditReport(state.auditReport);
+  const result = document.createElement("p");
+  result.className = `quality-result quality-${report.tone}`;
+  result.textContent = report.checked
+    ? `${report.title}：${report.summary}`
+    : "还没有检查。可以一键扫描语言残留、文字溢出和明显遮挡。";
+
+  panel.append(top, actions, result);
+  return panel;
+}
+
+function filteredAtlasCities() {
+  const query = String(state.citySearch || "").trim().toLowerCase();
+  const region = state.cityRegionFilter || "all";
+  const ownerMode = state.cityOwnerFilter || "all";
+  const current = currentPlayer();
+  return strongestCities()
+    .filter(({ index }) => {
+      const space = spaces[index];
+      if (space?.type !== "property") return false;
+      if (region !== "all" && space.region !== region) return false;
+      if (ownerMode === "mine" && state.owners[index] !== current?.id) return false;
+      if (ownerMode === "rival" && (!state.owners[index] || state.owners[index] === current?.id)) return false;
+      if (ownerMode === "free" && state.owners[index]) return false;
+      if (!query) return true;
+      const haystack = [
+        space.name,
+        space.country,
+        space.region,
+        space.landmark,
+        spaceDisplayName(index),
+        regionDisplayName(space.region),
+        countryDisplayName(space.country),
+      ].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+}
+
 function renderRecommendationCard(player) {
   const plan = nextActionPlan(player);
   const card = document.createElement("article");
@@ -4599,6 +4778,39 @@ function renderTradeAdvisor(player) {
   return card;
 }
 
+function renderTurnSummaryCard(player) {
+  const card = document.createElement("article");
+  card.className = "turn-summary-card";
+  const title = document.createElement("div");
+  title.className = "trade-subtitle";
+  title.textContent = "每回合小结";
+  const roundDeals = (state.dealLedger || []).filter((deal) => deal.round === state.round);
+  const roundBank = (state.bankLedger || []).filter((entry) => entry.round === state.round);
+  const roundLogs = (state.log || []).filter((entry) => entry.round === state.round);
+  const gainTones = new Set(["gain", "loan", "equity", "convertible", "coop", "deposit"]);
+  const costTones = new Set(["repay", "interest", "debt", "short"]);
+  const gains = [...roundDeals, ...roundBank]
+    .filter((entry) => gainTones.has(entry.tone))
+    .reduce((total, entry) => total + Math.max(0, Number(entry.amount) || 0), 0);
+  const costs = [...roundDeals, ...roundBank]
+    .filter((entry) => costTones.has(entry.tone))
+    .reduce((total, entry) => total + Math.max(0, Number(entry.amount) || 0), 0);
+  const net = gains - costs;
+  const stats = document.createElement("div");
+  stats.className = "advisor-stat-grid";
+  stats.append(
+    createGameStat("本轮收入", formatMoney(gains)),
+    createGameStat("本轮支出", formatMoney(costs)),
+    createGameStat("净变化", `${net >= 0 ? "+" : "-"}${formatMoney(Math.abs(net))}`),
+    createGameStat("事件", `${roundLogs.length} 条`),
+  );
+  const detail = document.createElement("p");
+  const latest = roundLogs[0]?.text || (player ? recommendationFor(player) : "等待本轮行动。");
+  detail.textContent = latest.length > 70 ? `${latest.slice(0, 70)}...` : latest;
+  card.append(title, stats, detail);
+  return card;
+}
+
 function renderAssetOverview(player) {
   const propertyValue = ownedPropertyIndexes(player.id).reduce((total, index) => total + cityValuation(index), 0);
   const stockValue = portfolioMarketValue(player) - propertyValue;
@@ -4640,6 +4852,57 @@ function renderAssetOverview(player) {
     createGameStat("信用", formatMoney(availableCredit(player))),
   );
   card.append(top, bars, stats);
+  return card;
+}
+
+function renderAssetRadar(player) {
+  const propertyScore = clamp(ownedPropertyIndexes(player.id).length * 9, 8, 100);
+  const cashScore = clamp((player.cash / Math.max(1, currentRules().startCash)) * 70, 8, 100);
+  const stockScore = clamp(totalStockShares(player) * 9, 8, 100);
+  const contractScore = clamp(coopContractsForPlayer(player).filter((contract) => contract.status === "active").length * 18, 8, 100);
+  const creditScore = clamp((availableCredit(player) / 2400) * 100, 8, 100);
+  const safetyScore = clamp(100 - riskIndex(player).score, 8, 100);
+  const values = [cashScore, propertyScore, stockScore, contractScore, creditScore, safetyScore];
+  const points = values.map((value, index) => {
+    const angle = (-90 + index * 60) * Math.PI / 180;
+    const radius = value * 0.38;
+    return `${50 + Math.cos(angle) * radius},${50 + Math.sin(angle) * radius}`;
+  }).join(" ");
+  const card = document.createElement("article");
+  card.className = "asset-radar-card";
+  const title = document.createElement("div");
+  title.className = "trade-subtitle";
+  title.textContent = "资产雷达图";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("class", "asset-radar-svg");
+  [18, 30, 42].forEach((radius) => {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", "50");
+    circle.setAttribute("cy", "50");
+    circle.setAttribute("r", String(radius));
+    circle.setAttribute("class", "radar-ring");
+    svg.appendChild(circle);
+  });
+  const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  polygon.setAttribute("points", points);
+  polygon.setAttribute("class", "radar-shape");
+  svg.appendChild(polygon);
+  const labels = document.createElement("div");
+  labels.className = "asset-radar-labels";
+  [
+    ["现金", Math.round(cashScore)],
+    ["地产", Math.round(propertyScore)],
+    ["股票", Math.round(stockScore)],
+    ["合同", Math.round(contractScore)],
+    ["信用", Math.round(creditScore)],
+    ["安全", Math.round(safetyScore)],
+  ].forEach(([label, score]) => {
+    const pill = document.createElement("span");
+    pill.textContent = `${label} ${score}`;
+    labels.appendChild(pill);
+  });
+  card.append(title, svg, labels);
   return card;
 }
 
@@ -4885,7 +5148,7 @@ function renderTrade() {
   const hint = document.createElement("p");
   hint.className = "panel-hint";
   hint.textContent = "这里保留融资、并购、债券和场外报价；合同入口固定在下方，也可以去右侧“合同”抽屉查看。";
-  tradePanel.append(title, hint, renderContractHubCard(current), renderDealDashboard(current));
+  tradePanel.append(title, hint, renderRecommendationCard(current), renderTurnSummaryCard(current), renderContractHubCard(current), renderDealDashboard(current));
 
   const negotiationPanel = renderNegotiationPanel(current);
   if (negotiationPanel) tradePanel.appendChild(negotiationPanel);
@@ -5077,6 +5340,13 @@ function renderCoop() {
   const offerCount = coopContractCandidates(player).length;
   const archiveCount = archivedCoopContractsForPlayer(player).length;
   const proposalCount = coopProposalsForPlayer(player).length;
+  coopPanel.appendChild(createUiDrawer("panel:contractInbox", "合同收件箱", [
+    renderContractInboxPanel(player),
+  ], {
+    icon: "news",
+    meta: proposalCount ? `${proposalCount} 个请求` : activeCount ? `${activeCount} 生效` : "清爽",
+    open: true,
+  }));
   coopPanel.appendChild(createUiDrawer("panel:coopDraft", "合同签署台", [
     renderContractDraftDesk(player),
   ], {
@@ -5104,6 +5374,13 @@ function renderCoop() {
     icon: "news",
     meta: archiveCount ? `${archiveCount} 条` : "空",
     open: Boolean(archiveCount),
+  }));
+  coopPanel.appendChild(createUiDrawer("panel:contractTemplates", "合同模板分类", [
+    renderContractTemplateCategoryPanel(player),
+  ], {
+    icon: "card",
+    meta: "4 类模板",
+    open: false,
   }));
   coopPanel.appendChild(createUiDrawer("panel:coopGuide", "怎么出现可签合同", [
     renderCoopGuide(player),
@@ -5196,6 +5473,98 @@ function renderContractDraftDesk(player) {
   button.disabled = !player || state.gameOver;
   desk.append(title, detail, button);
   return desk;
+}
+
+function renderContractInboxPanel(player) {
+  const inbox = document.createElement("section");
+  inbox.className = "contract-inbox-panel";
+  const proposals = coopProposalsForPlayer(player).slice(0, 6);
+  const active = coopContractsForPlayer(player).filter((contract) => contract.status === "active").slice(0, 3);
+  if (!proposals.length && !active.length) {
+    inbox.appendChild(emptyNote("暂时没有合同请求。对手买下城市后，这里会集中显示请求和审批状态。"));
+    return inbox;
+  }
+  proposals.forEach((proposal) => {
+    const row = document.createElement("article");
+    row.className = "contract-inbox-row";
+    const status = proposal.approverId === player?.id ? "needs" : proposal.status;
+    row.append(
+      createContractStatusTag(status),
+      createContractInboxCopy(
+        spaceDisplayName(proposal.propertyIndex),
+        `${playerById(proposal.proposerId)?.name || "发起方"} → ${playerById(proposal.approverId)?.name || "审批方"} / ${proposal.response || "等待审批"}`,
+      ),
+    );
+    if (proposal.status === "pending" && proposal.approverId === player?.id) {
+      const actions = document.createElement("div");
+      actions.className = "proposal-actions compact";
+      [["acceptProposal", "同意"], ["declineProposal", "拒绝"]].forEach(([action, label]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.coopAction = action;
+        button.dataset.proposalId = proposal.id;
+        button.textContent = label;
+        actions.appendChild(button);
+      });
+      row.appendChild(actions);
+    }
+    inbox.appendChild(row);
+  });
+  active.forEach((contract) => {
+    const row = document.createElement("article");
+    row.className = "contract-inbox-row";
+    row.append(
+      createContractStatusTag(contract.status),
+      createContractInboxCopy(spaceDisplayName(contract.propertyIndex), `剩 ${contract.remainingRounds} 轮 / 每轮分红 ${formatMoney(contract.partnerPerRound)} / 违约金 ${formatMoney(contract.penalty)}`),
+    );
+    inbox.appendChild(row);
+  });
+  return inbox;
+}
+
+function createContractInboxCopy(title, detail) {
+  const copy = document.createElement("div");
+  copy.className = "contract-inbox-copy";
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+  const span = document.createElement("span");
+  span.textContent = detail;
+  copy.append(strong, span);
+  return copy;
+}
+
+function createContractStatusTag(status) {
+  const label = {
+    needs: "待你审批",
+    pending: "待审批",
+    active: "已生效",
+    rejected: "被拒绝",
+    completed: "已到期",
+    breached: "已违约",
+    terminated: "已解约",
+  }[status] || "合同";
+  const tag = document.createElement("span");
+  tag.className = `contract-status-tag contract-status-tag-${status}`;
+  tag.textContent = label;
+  return tag;
+}
+
+function renderContractTemplateCategoryPanel(player) {
+  const panel = document.createElement("div");
+  panel.className = "contract-template-grid";
+  const offers = coopContractCandidates(player);
+  [
+    ["金融分红合同", "金融城市，现金流稳定，违约金偏重要", "finance"],
+    ["旅游收益合同", "旅游或沿海城市，旺季分红高，波动也高", "tourism"],
+    ["科技孵化合同", "科技城市，升级后回本更快", "tech"],
+    ["航线联营合同", "机场/交通城市，适合环球路线", "transit"],
+  ].forEach(([title, detail, type]) => {
+    const count = offers.filter(({ index }) => contractTemplateForCity(index).label === title || spaces[index]?.specialty === type).length;
+    const card = document.createElement("article");
+    card.append(createContractStatusTag(count ? "active" : "pending"), createContractInboxCopy(title, `${detail} / 当前 ${count} 个项目`));
+    panel.appendChild(card);
+  });
+  return panel;
 }
 
 function renderCoopGuide(player) {
@@ -5612,7 +5981,7 @@ function renderDealLedger(showTitle = true) {
 function renderProgress() {
 	  progressPanel.innerHTML = "";
 	  const current = currentPlayer();
-	  const drawerChildren = [renderVictoryProgressCard(current), renderGameGoals(current), renderRouteMission(current), renderTurnGoalCard(current)];
+	  const drawerChildren = [renderVictoryProgressCard(current), renderTurnSummaryCard(current), renderGameGoals(current), renderRouteMission(current), renderTurnGoalCard(current)];
 
   const tasks = document.createElement("div");
   tasks.className = "task-list";
@@ -5667,7 +6036,7 @@ function renderProgress() {
 
 function renderWorldPanel() {
   worldPanel.innerHTML = "";
-  const drawerChildren = [];
+  const drawerChildren = [renderInterfaceQualityPanel()];
 
   const tabs = document.createElement("div");
   tabs.className = "world-tabs";
@@ -5729,8 +6098,42 @@ function renderWorldPanel() {
 function renderAtlasPanel() {
   const wrap = document.createElement("div");
   wrap.className = "atlas-panel";
-  const top = strongestCities().slice(0, 5);
-  top.forEach(({ index, score }) => {
+
+  const filters = document.createElement("div");
+  filters.className = "atlas-filter-bar";
+  const search = document.createElement("input");
+  search.type = "search";
+  search.dataset.atlasFilter = "search";
+  search.placeholder = "搜索城市 / 国家 / 洲";
+  search.value = state.citySearch || "";
+  const region = document.createElement("select");
+  region.dataset.atlasFilter = "region";
+  [["all", "全部洲"], ...Array.from(new Set(spaces.filter((space) => space.type === "property").map((space) => space.region))).map((name) => [name, name])].forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    region.appendChild(option);
+  });
+  region.value = state.cityRegionFilter || "all";
+  const owner = document.createElement("select");
+  owner.dataset.atlasFilter = "owner";
+  [
+    ["all", "全部持有人"],
+    ["mine", "我的城市"],
+    ["rival", "对手城市"],
+    ["free", "无人城市"],
+  ].forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    owner.appendChild(option);
+  });
+  owner.value = state.cityOwnerFilter || "all";
+  filters.append(search, region, owner);
+  wrap.appendChild(filters);
+
+  const filtered = filteredAtlasCities();
+  filtered.slice(0, 12).forEach(({ index, score }) => {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "atlas-city";
@@ -5738,11 +6141,12 @@ function renderAtlasPanel() {
     item.innerHTML = `<strong>${spaceDisplayName(index)}</strong><span>${cityRating(index)} 级 / ${rareBadgeLabel(spaces[index].rareBadge)} / ${Math.round(score)}分 / ${state.cityCollection?.includes(index) ? "已收藏" : "未解锁"}</span>`;
     wrap.appendChild(item);
   });
+  if (!filtered.length) wrap.appendChild(emptyNote("没有找到符合条件的城市。"));
   const all = document.createElement("button");
   all.type = "button";
   all.className = "primary-action atlas-open";
   all.dataset.worldAction = "open-atlas";
-  all.textContent = "打开 100 地点图鉴";
+  all.textContent = filtered.length ? `打开 100 地点图鉴 / 当前 ${filtered.length} 个结果` : "打开 100 地点图鉴";
   wrap.appendChild(all);
   return wrap;
 }
@@ -5761,6 +6165,7 @@ function renderStockPanel() {
     createGameStat("流动性", marketIndexValue() > 140 ? "活跃" : "观望"),
   );
   list.appendChild(summary);
+  list.appendChild(renderStockLeaderboard());
   strongestCities()
     .sort((a, b) => cityValuation(b.index) - cityValuation(a.index))
     .slice(0, 6)
@@ -5774,6 +6179,34 @@ function renderStockPanel() {
       list.appendChild(item);
     });
   return list;
+}
+
+function renderStockLeaderboard() {
+  const board = document.createElement("section");
+  board.className = "stock-leaderboard";
+  const stocks = strongestCities()
+    .map(({ index }) => ({
+      index,
+      price: stockPrice(index),
+      trend: Number(state.stockTrends?.[index] || 0),
+      heat: cityValuation(index) + Math.max(0, Number(state.cityRevenue?.[index] || 0)),
+    }))
+    .sort((a, b) => b.heat - a.heat);
+  const groups = [
+    ["涨幅最高", stocks.filter((item) => item.trend > 0).sort((a, b) => b.trend - a.trend)[0] || stocks[0], "up"],
+    ["跌幅最大", stocks.filter((item) => item.trend < 0).sort((a, b) => a.trend - b.trend)[0] || stocks[1] || stocks[0], "down"],
+    ["最热门", stocks[0], "hot"],
+  ];
+  groups.forEach(([label, item, tone]) => {
+    if (!item) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `stock-leader-card stock-leader-${tone}`;
+    button.dataset.openProperty = String(item.index);
+    button.innerHTML = `<small>${label}</small><strong>${spaceDisplayName(item.index)}</strong><span>${trendLabel(item.trend)} / 股价 ${formatMoney(item.price)}</span>`;
+    board.appendChild(button);
+  });
+  return board;
 }
 
 function renderRulesPanel() {
@@ -6040,14 +6473,14 @@ function renderAssets() {
 
 	  const owned = ownedPropertyIndexes(current.id);
 	  if (owned.length === 0) {
-	    appendPanelDrawer(assetsPanel, "panel:assets", `${current.name} 的资产`, [renderRecommendationCard(current), renderAssetOverview(current), renderRiskAlertCard(current), emptyNote("还没有地产。")], {
+	    appendPanelDrawer(assetsPanel, "panel:assets", `${current.name} 的资产`, [renderRecommendationCard(current), renderAssetOverview(current), renderAssetRadar(current), renderRiskAlertCard(current), emptyNote("还没有地产。")], {
 	      icon: "home",
 	      meta: "0 座",
 	    });
 	    return;
 	  }
 	
-	  const drawerChildren = [renderRecommendationCard(current), renderAssetOverview(current), renderRiskAlertCard(current)];
+	  const drawerChildren = [renderRecommendationCard(current), renderAssetOverview(current), renderAssetRadar(current), renderRiskAlertCard(current)];
 
   const quickUpgrade = document.createElement("button");
   quickUpgrade.type = "button";
@@ -7745,11 +8178,112 @@ function handleWorldPanelClick(event) {
     openEncyclopedia();
     return;
   }
+  if (actionButton?.dataset.worldAction === "toggle-simple") {
+    state.config = { ...(state.config || {}), simpleMode: !state.config?.simpleMode };
+    state.status = state.config.simpleMode ? "已开启简洁模式，右侧只保留核心经营抽屉。" : "已切回完整模式，所有系统抽屉都会显示。";
+    render();
+    return;
+  }
+  if (actionButton?.dataset.worldAction === "language-audit") {
+    state.auditReport = runLanguageQualityAudit();
+    state.status = state.auditReport.summary;
+    render();
+    return;
+  }
+  if (actionButton?.dataset.worldAction === "visual-audit") {
+    state.auditReport = runVisualQualityAudit();
+    state.status = state.auditReport.summary;
+    render();
+    return;
+  }
+  if (actionButton?.dataset.worldAction === "replay-tutorial") {
+    writeTutorialProgress({ introSeen: false, skipped: false, completed: false });
+    renderTutorialIntro();
+    if (typeof tutorialDialog?.showModal === "function") {
+      tutorialDialog.showModal();
+    } else {
+      tutorialDialog?.setAttribute("open", "");
+    }
+    state.status = "已打开教程中心，可重新开始教学局或查看按钮说明。";
+    render();
+    return;
+  }
 
   const propertyButton = event.target.closest("button[data-open-property]");
   if (propertyButton) {
     openPropertyDialog(Number(propertyButton.dataset.openProperty));
   }
+}
+
+function handleWorldPanelInput(event) {
+  const control = event.target.closest("[data-atlas-filter]");
+  if (!control) return;
+  if (control.dataset.atlasFilter === "search") state.citySearch = control.value.slice(0, 40);
+  if (control.dataset.atlasFilter === "region") state.cityRegionFilter = control.value || "all";
+  if (control.dataset.atlasFilter === "owner") state.cityOwnerFilter = control.value || "all";
+  render();
+}
+
+function runLanguageQualityAudit() {
+  const language = currentLanguage();
+  const checks = {
+    zh: ["Cerrar", "Contratos", "Dados", "Ronda", "Casilla", "Ingreso", "Buy Decision", "Tools & Build", "Close", "Cancel", "Distrito", "Sello Urbano"],
+    en: ["关闭", "买地决策", "工具建设", "回合行动", "合同中心", "Cerrar", "Dados", "Ronda"],
+    es: ["关闭", "买地决策", "工具建设", "回合行动", "合同中心", "Buy Decision", "Tools & Build", "Close"],
+  }[language] || [];
+  const matches = [];
+  document.querySelectorAll("body *").forEach((node) => {
+    if (["OPTION", "SCRIPT", "STYLE", "SVG", "USE"].includes(node.tagName)) return;
+    const ownText = Array.from(node.childNodes)
+      .filter((child) => child.nodeType === 3)
+      .map((child) => child.nodeValue.trim())
+      .filter(Boolean)
+      .join(" ");
+    if (!ownText) return;
+    const hit = checks.find((word) => ownText.includes(word));
+    if (hit) matches.push(`${hit}：${ownText.slice(0, 36)}`);
+  });
+  const count = matches.length;
+  return normalizeAuditReport({
+    checked: true,
+    type: "language",
+    title: "语言质检",
+    tone: count ? "warn" : "safe",
+    summary: count ? `发现 ${count} 处疑似混入：${matches.slice(0, 2).join(" / ")}` : "当前页面没有发现明显语言混入。",
+    count,
+  });
+}
+
+function runVisualQualityAudit() {
+  const overflow = Array.from(document.querySelectorAll("button, summary, .deal-card, .current-tile, .game-stat, .side-category-drawer, .main-action-drawer"))
+    .filter((node) => !node.closest(".board"))
+    .filter((node) => node.scrollWidth > node.clientWidth + 2 || node.scrollHeight > node.clientHeight + 2)
+    .slice(0, 12);
+  const rects = Array.from(document.querySelectorAll(".game-shell, .side-panel, .board-shell, .current-tile, .main-actions"))
+    .filter((node) => !node.hidden)
+    .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.width > 0 && rect.height > 0);
+  let overlapCount = 0;
+  for (let i = 0; i < rects.length; i += 1) {
+    for (let j = i + 1; j < rects.length; j += 1) {
+      if (rects[i].node.contains(rects[j].node) || rects[j].node.contains(rects[i].node)) continue;
+      const a = rects[i].rect;
+      const b = rects[j].rect;
+      const overlap = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+        Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+      const smaller = Math.min(a.width * a.height, b.width * b.height);
+      if (smaller > 0 && overlap / smaller > 0.32) overlapCount += 1;
+    }
+  }
+  const count = overflow.length + overlapCount;
+  return normalizeAuditReport({
+    checked: true,
+    type: "visual",
+    title: "视觉检查",
+    tone: count ? "warn" : "safe",
+    summary: count ? `发现 ${overflow.length} 个文字可能溢出、${overlapCount} 组大面积重叠。` : "没有发现明显文字溢出或大面积遮挡。",
+    count,
+  });
 }
 
 function useVentureAction() {
@@ -9302,6 +9836,56 @@ function resolveAiCoopProposal(proposal) {
     logEvent(`${owner.name} 同意合同提案，${spaceDisplayName(proposal.propertyIndex)} 合同正式生效。`);
     proposal.ownerSignature = sanitizeContractSignature(owner.name, owner.name);
     executeSignCoopContract(proposal.propertyIndex, proposal.clause, proposal.partnerId, proposal.negotiationMode, proposal.id, proposal);
+    return;
+  }
+
+  const dividend = coopDividend(proposal.propertyIndex);
+  const affordableCap = Math.max(0, (partner?.cash || 0) - 30);
+  const canCounter = partner && affordableCap >= Math.round(baseUpfront * 0.92) && proposal.riskScore < 88 && ownerRisk < 92;
+  if (canCounter) {
+    const counterUpfront = clamp(Math.round(baseUpfront * 1.08), Math.round(baseUpfront * 0.92), affordableCap);
+    const counterOwnerPerRound = clamp(Math.max(minimumOwnerShare, proposal.ownerPerRound + 10), minimumOwnerShare, Math.max(minimumOwnerShare, dividend - 10));
+    const counterPartnerPerRound = Math.max(5, dividend - counterOwnerPerRound);
+    const counterDuration = clamp(Math.min(proposal.duration || COOP_CONTRACT_DURATION, 8), 3, 8);
+    const counterPenalty = Math.max(proposal.penalty || 0, Math.round(coopContractFinancials(proposal.propertyIndex, "standard").penalty * 1.08));
+    const counterTerms = {
+      ...proposal,
+      upfront: counterUpfront,
+      ownerReceipt: counterUpfront,
+      ownerPerRound: counterOwnerPerRound,
+      partnerPerRound: counterPartnerPerRound,
+      share: clamp(counterPartnerPerRound / Math.max(1, dividend), 0.12, 0.72),
+      duration: counterDuration,
+      penalty: counterPenalty,
+    };
+    const counterFinancials = coopContractFinancialsWithTerms(proposal.propertyIndex, proposal.negotiationMode, counterTerms);
+    const counterRisk = contractRiskAssessment(proposal.propertyIndex, counterFinancials, partner, owner);
+    const counterProposal = {
+      ...proposal,
+      id: `proposal-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      proposerId: owner.id,
+      approverId: partner.id,
+      upfront: counterFinancials.upfront,
+      ownerReceipt: counterFinancials.ownerReceipt,
+      penalty: counterFinancials.penalty,
+      share: counterFinancials.share,
+      partnerPerRound: counterFinancials.partnerPerRound,
+      ownerPerRound: counterFinancials.ownerPerRound,
+      duration: counterFinancials.duration,
+      contractValue: counterFinancials.contractValue,
+      riskLevel: counterRisk.level,
+      riskScore: counterRisk.score,
+      advisor: counterRisk.advisor,
+      status: "pending",
+      response: "对方还价：提高入场费或保留收益，等待你同意",
+      ownerSignature: sanitizeContractSignature(owner.name, owner.name),
+      partnerSignature: sanitizeContractSignature(partner.name, partner.name),
+    };
+    state.coopProposals = [counterProposal, ...normalizeCoopProposals(state.coopProposals)].slice(0, COOP_CONTRACT_ARCHIVE_LIMIT);
+    state.status = `${owner.name} 向 ${partner.name} 提出还价合同：${spaceDisplayName(proposal.propertyIndex)} 等待你同意。`;
+    logEvent(`${owner.name} 对 ${spaceDisplayName(proposal.propertyIndex)} 合同提出还价。`);
+    addNews("合同还价", `${owner.name} 没有直接同意，而是发来新的合同条件。`, "deal");
+    showContractAnimation("合同还价", `${owner.name} → ${partner.name}`, "deal");
     return;
   }
 

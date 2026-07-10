@@ -2432,6 +2432,14 @@ h2 {
   box-shadow: 0 6px 12px color-mix(in srgb, currentColor, transparent 72%);
 }
 
+html[lang="en"] .action-bar button.is-next-action::after {
+  content: "Next";
+}
+
+html[lang="es"] .action-bar button.is-next-action::after {
+  content: "Siguiente";
+}
+
 .action-bar button.is-secondary-action {
   opacity: 0.86;
 }
@@ -3162,6 +3170,89 @@ h2 {
   gap: 8px;
 }
 
+.quality-panel {
+  display: grid;
+  gap: 9px;
+}
+
+.quality-panel-top,
+.quality-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.quality-panel-top strong {
+  min-width: 0;
+  color: var(--charcoal);
+  font-size: 0.85rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.quality-panel button,
+.quality-actions button {
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.quality-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.quality-actions button {
+  width: 100%;
+  padding: 0 8px;
+}
+
+.quality-result {
+  margin: 0;
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #435267;
+  padding: 9px 10px;
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.quality-safe {
+  border-left-color: var(--green);
+  background: rgba(235, 250, 242, 0.84);
+}
+
+.quality-warn {
+  border-left-color: var(--coral);
+  background: rgba(255, 244, 238, 0.88);
+}
+
+.atlas-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 7px;
+}
+
+.atlas-filter-bar input,
+.atlas-filter-bar select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid rgba(34, 48, 66, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--charcoal);
+  padding: 0 9px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
 .deal-dashboard,
 .market-summary {
   display: grid;
@@ -3243,6 +3334,93 @@ h2 {
   min-width: 92px;
   display: grid;
   grid-template-columns: 1fr;
+}
+
+.proposal-actions.compact {
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  justify-content: end;
+  gap: 5px;
+}
+
+.proposal-actions.compact button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 0.64rem;
+}
+
+.contract-inbox-panel,
+.contract-template-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.contract-inbox-row,
+.contract-template-grid article {
+  min-width: 0;
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.contract-template-grid article {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.contract-inbox-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.contract-inbox-copy strong {
+  min-width: 0;
+  color: var(--charcoal);
+  font-size: 0.74rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.contract-inbox-copy span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 850;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.contract-status-tag {
+  justify-self: start;
+  border-radius: 999px;
+  background: rgba(232, 248, 250, 0.94);
+  color: var(--teal);
+  padding: 5px 7px;
+  font-size: 0.58rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.contract-status-tag-needs,
+.contract-status-tag-pending {
+  background: rgba(255, 246, 223, 0.96);
+  color: #805412;
+}
+
+.contract-status-tag-active {
+  background: rgba(235, 250, 242, 0.96);
+  color: #1f704f;
+}
+
+.contract-status-tag-rejected,
+.contract-status-tag-breached,
+.contract-status-tag-terminated {
+  background: rgba(255, 239, 235, 0.96);
+  color: #93412f;
 }
 
 .coop-proposal-card {
@@ -3752,6 +3930,51 @@ h2 {
   background:
     linear-gradient(135deg, rgba(255, 236, 232, 0.94), rgba(255, 255, 255, 0.78));
   animation: stockPulseDown 1.3s ease;
+}
+
+.stock-leaderboard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.stock-leader-card {
+  min-width: 0;
+  min-height: 72px;
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(232, 248, 250, 0.72));
+}
+
+.stock-leader-up {
+  border-color: rgba(45, 159, 111, 0.28);
+}
+
+.stock-leader-down {
+  border-color: rgba(223, 98, 78, 0.28);
+}
+
+.stock-leader-hot {
+  border-color: rgba(216, 153, 33, 0.32);
+}
+
+.stock-leader-card small,
+.stock-leader-card span {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.stock-leader-card strong {
+  color: var(--charcoal);
+  font-size: 0.72rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
 }
 
 .atlas-city strong,
@@ -4311,9 +4534,11 @@ h2 {
 .quarterly-report,
 .recommendation-card,
 .trade-negotiation,
+.turn-summary-card,
 .turn-goal-card,
 .trade-advisor,
 .asset-overview,
+.asset-radar-card,
 .risk-alert-card,
 .victory-progress-card {
   min-width: 0;
@@ -4401,6 +4626,7 @@ h2 {
 }
 
 .turn-goal-card p,
+.turn-summary-card p,
 .trade-advisor p,
 .risk-alert-card p,
 .victory-progress-card p {
@@ -4480,6 +4706,53 @@ h2 {
 .asset-bar strong {
   font-size: 0.68rem;
   font-weight: 950;
+}
+
+.asset-radar-card {
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+}
+
+.asset-radar-card .trade-subtitle {
+  grid-column: 1 / -1;
+}
+
+.asset-radar-svg {
+  width: 92px;
+  height: 92px;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: rgba(34, 48, 66, 0.12);
+  stroke-width: 1;
+}
+
+.radar-shape {
+  fill: rgba(18, 138, 156, 0.28);
+  stroke: var(--teal);
+  stroke-width: 2;
+}
+
+.asset-radar-labels {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.asset-radar-labels span {
+  min-width: 0;
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  padding: 5px 7px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .risk-meter::before {
@@ -5988,6 +6261,27 @@ h2 {
   .deal-dashboard,
   .market-summary {
     gap: 6px;
+  }
+
+  .quality-panel-top,
+  .quality-actions,
+  .atlas-filter-bar,
+  .stock-leaderboard,
+  .asset-radar-card,
+  .contract-inbox-row {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-radar-svg {
+    justify-self: center;
+  }
+
+  .contract-inbox-row {
+    align-items: stretch;
+  }
+
+  .proposal-actions.compact {
+    justify-content: stretch;
   }
 
   .deal-card {
