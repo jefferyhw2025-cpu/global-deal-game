@@ -19,6 +19,8 @@ const AUCTION_INCREMENT = 20;
 const AUCTION_TURN_MS = 12000;
 const MOVEMENT_STEP_MS = 170;
 const PAUSE_INDEX = 25;
+const STAFF_PAY_INTERVAL = 3;
+const STAFF_TASK_ARCHIVE_LIMIT = 6;
 const MIN_PLAYER_COUNT = 2;
 const MAX_PLAYER_COUNT = 12;
 const BASE_MAP_SIZE = 100;
@@ -72,6 +74,7 @@ const DEFAULT_DRAWER_OPEN = {
   "panel:coopGuide": false,
   "panel:cards": true,
   "panel:bank": false,
+  "panel:staff": true,
   "panel:hand": true,
   "panel:auction": true,
   "panel:shop": true,
@@ -1276,6 +1279,80 @@ const citySpecialtyDefinitions = {
   tech: { label: "科技高地", effect: "升级费 -10%", build: 0.9 },
   transit: { label: "交通枢纽", effect: "经过起点奖励 +20" },
   culture: { label: "文化名城", effect: "自有停留奖励 +35" },
+};
+
+const staffDefinitions = {
+  auctionAgent: {
+    title: "拍卖代理",
+    wage: 70,
+    hireCost: 120,
+    termRounds: 12,
+    severance: 95,
+    autonomy: true,
+    detail: "拍卖轮到你时，可按估值自动出价或退出。",
+    contractTitle: "拍卖代理聘用合同",
+    responsibility: "负责拍卖盯盘、估价模型和自动竞价建议。",
+    resignationClause: "连续两次工资不足或士气过低时，可提前辞职。",
+    fireClause: "玩家可随时解雇，但合同期内需支付遣散金。",
+  },
+  contractBroker: {
+    title: "合同经纪",
+    wage: 80,
+    hireCost: 140,
+    termRounds: 14,
+    severance: 110,
+    autonomy: false,
+    detail: "提高合同声望，并帮助发现更划算的合作机会。",
+    contractTitle: "合同经纪服务合同",
+    responsibility: "负责筛选合作机会、审查条款和提升合同信誉。",
+    resignationClause: "长期无任务或合同信誉太差时，可能主动离职。",
+    fireClause: "玩家可随时解雇，提前解约会产生遣散费用。",
+  },
+  riskOfficer: {
+    title: "风险官",
+    wage: 65,
+    hireCost: 110,
+    termRounds: 10,
+    severance: 85,
+    autonomy: false,
+    detail: "降低风险指数和贷款利率，适合高杠杆玩法。",
+    contractTitle: "风险控制聘任合同",
+    responsibility: "负责债务审查、杠杆预警和信用维护。",
+    resignationClause: "现金流长期危险或拖欠工资时，可提出辞职。",
+    fireClause: "玩家可随时解雇，但需结清风险审查服务费。",
+  },
+  marketAnalyst: {
+    title: "商业顾问",
+    wage: 60,
+    hireCost: 100,
+    termRounds: 9,
+    severance: 75,
+    autonomy: false,
+    detail: "给关键按钮和买地/买股判断提供更强提示。",
+    contractTitle: "商业顾问咨询合同",
+    responsibility: "负责市场研究、股票热度和城市投资建议。",
+    resignationClause: "士气低或连续没有任务时，可能跳槽。",
+    fireClause: "玩家可随时解雇，短约员工遣散金较低。",
+  },
+};
+
+const staffTaskDefinitions = {
+  auctionAgent: [
+    { id: "auctionWatch", title: "盯拍热门城市", duration: 2, reward: 90, morale: 8, detail: "完成后获得拍卖情报补贴，并提高拍卖代理士气。" },
+    { id: "bidModel", title: "制作竞价模型", duration: 3, reward: 70, morale: 10, detail: "完成后获得估值模型收益，代理更愿意自动盯盘。" },
+  ],
+  contractBroker: [
+    { id: "draftContract", title: "起草合同模板", duration: 2, reward: 60, reputation: 4, morale: 8, detail: "完成后提升合同声望，并可能带来更好合同机会。" },
+    { id: "auditClause", title: "审查违约条款", duration: 3, reward: 80, reputation: 3, morale: 10, detail: "完成后获得条款咨询费，并降低违约谈判风险。" },
+  ],
+  riskOfficer: [
+    { id: "debtAudit", title: "审计融资债务", duration: 2, debtReduction: 130, morale: 8, detail: "完成后帮助压降债务或获得风险审查补贴。" },
+    { id: "creditRepair", title: "修复信用评级", duration: 3, debtReduction: 90, reputation: 2, morale: 11, detail: "完成后改善信用，适合高杠杆玩家。" },
+  ],
+  marketAnalyst: [
+    { id: "marketReport", title: "全球市场报告", duration: 2, reward: 85, morale: 8, detail: "完成后获得研究收益，并提示热点市场方向。" },
+    { id: "stockRadar", title: "股票雷达扫描", duration: 3, reward: 65, stock: 1, morale: 9, detail: "完成后尝试获得一股热门城市股票。" },
+  ],
 };
 
 const ventureEvents = [
@@ -3489,7 +3566,9 @@ const chineseTextRestoreMap = (() => {
   const entries = new Map();
   const add = (foreignText, chineseText) => {
     if (!foreignText || !chineseText || foreignText === chineseText) return;
-    entries.set(String(foreignText), String(chineseText));
+    const normalized = String(foreignText).trim();
+    if (normalized.length < 3 || /^[a-z]{2}(-[A-Z]{2})?$/.test(normalized)) return;
+    entries.set(normalized, String(chineseText));
   };
   Object.entries(languageDefinitions.zh).forEach(([key, chineseValue]) => {
     if (typeof chineseValue !== "string") return;
@@ -3521,6 +3600,7 @@ function restoreChineseText(text) {
   if (!restored || restored === source) {
     restored = source;
     chineseTextRestoreMap.forEach(([foreignText, chineseText]) => {
+      if (foreignText.length < 4) return;
       if (restored.includes(foreignText)) restored = restored.split(foreignText).join(chineseText);
     });
   }
@@ -3860,6 +3940,7 @@ function createInitialGame(config = {}) {
     position: 0,
     cards: [],
     stocks: {},
+    staff: [],
     spyIntel: null,
     comebackReady: false,
     grudgeTarget: "",
@@ -3898,6 +3979,7 @@ function createInitialGame(config = {}) {
     pendingPurchase: null,
     auction: null,
     market: createMarketState(rules.rulesPreset === "daily" ? dailyChallengeMarketId() : "steady"),
+    hotCity: null,
     lastRoll: null,
     status: uiTextForLanguage(language, "readyStatus", players[0].name),
     gameOver: false,
@@ -3921,7 +4003,7 @@ function createInitialGame(config = {}) {
     cityCompanies: Array.from({ length: spaces.length }, createCityCompanyState),
     cityPublic: Array(spaces.length).fill(false),
     cityCollection: [],
-    goals: createGameGoals(),
+    goals: createGameGoals(Date.now()),
     hiddenMissions: createHiddenMissions(players),
     mission: createRouteMission(1, players[0]),
     missionHistory: [],
@@ -3987,6 +4069,7 @@ function loadGame() {
       player.position = clamp(Number(player.position) || 0, 0, spaces.length - 1);
       player.cards = Array.isArray(player.cards) ? player.cards.filter((cardId) => handCardDefinitions[cardId]) : [];
       player.stocks = normalizeStocks(player.stocks);
+      player.staff = normalizeStaffRoster(player.staff);
       player.spyIntel = normalizeSpyIntel(player.spyIntel);
       player.comebackReady = Boolean(player.comebackReady);
       player.grudgeTarget = typeof player.grudgeTarget === "string" ? player.grudgeTarget : "";
@@ -4098,6 +4181,7 @@ function loadGame() {
     saved.worldPanelMode = ["atlas", "stocks", "business", "rules", "records"].includes(saved.worldPanelMode) ? saved.worldPanelMode : "atlas";
     saved.selectedPropertyIndex = Number.isInteger(saved.selectedPropertyIndex) ? saved.selectedPropertyIndex : null;
     saved.market = normalizeMarket(saved.market);
+    saved.hotCity = normalizeHotCity(saved.hotCity);
     saved.liquidations = Array.isArray(saved.liquidations) ? saved.liquidations.slice(0, 8) : [];
     saved.auction = normalizeAuction(saved.auction);
     if (!["waiting", "moving", "decision", "auction", "shop", "ending", "gameOver"].includes(saved.phase)) {
@@ -4534,6 +4618,11 @@ function renderCards() {
       icon: "spark",
       meta: `Lv.${characterLevel(current)}`,
     }));
+    drawerChildren.push(createUiDrawer("panel:staff", "手下人员", [renderStaffPanel(current)], {
+      variant: "nested",
+      icon: "shield",
+      meta: `${current.staff?.length || 0} 人 / 工资 ${formatMoney(staffWageTotal(current))}`,
+    }));
   }
 
   if (current.cards.length === 0) {
@@ -4673,6 +4762,420 @@ function renderBankCard(player) {
   if (actions.children.length) card.appendChild(actions);
   if (ledger.children.length) card.appendChild(ledger);
   return card;
+}
+
+function renderStaffPanel(player) {
+  const panel = document.createElement("div");
+  panel.className = "staff-panel";
+
+  const summary = document.createElement("div");
+  summary.className = "staff-summary";
+  summary.append(
+    createGameStat("团队规模", `${player.staff?.length || 0}/${Object.keys(staffDefinitions).length}`),
+    createGameStat(`每 ${STAFF_PAY_INTERVAL} 轮工资`, formatMoney(staffWageTotal(player))),
+    createGameStat("下次发薪", staffPayCountdownLabel()),
+    createGameStat("进行任务", `${normalizeStaffRoster(player.staff).filter((staff) => staff.taskId).length} 项`),
+  );
+  panel.appendChild(summary);
+
+  const note = document.createElement("p");
+  note.className = "staff-note";
+  note.textContent = "员工合同不同于城市合作合同：这里约定工资周期、合同期限、岗位任务、辞职条件和解雇赔偿。";
+  panel.appendChild(note);
+
+  const list = document.createElement("div");
+  list.className = "staff-list";
+  Object.entries(staffDefinitions).forEach(([id, definition]) => {
+    const hired = staffMember(player, id);
+    const item = document.createElement("article");
+    item.className = hired ? "staff-card staff-hired" : "staff-card";
+
+    const copy = document.createElement("div");
+    copy.className = "staff-copy";
+    const title = document.createElement("strong");
+    title.textContent = definition.title;
+    const detail = document.createElement("span");
+    detail.textContent = hired
+      ? `${definition.detail} / 士气 ${staffMoraleLabel(hired)} / ${staffTaskLabel(hired)}`
+      : `${definition.detail} / 签约金 ${formatMoney(definition.hireCost)}，工资 ${formatMoney(definition.wage)}`;
+    copy.append(title, detail, createStaffContractBlock(player, id, hired));
+
+    const actions = document.createElement("div");
+    actions.className = "staff-actions";
+    if (hired) {
+      const taskOptions = staffTaskOptions(id);
+      if (hired.taskId) {
+        const task = staffTaskDefinition(id, hired.taskId);
+        const badge = document.createElement("span");
+        badge.className = "staff-task-badge";
+        badge.textContent = `${task?.title || "任务"} ${staffTaskProgressLabel(hired, task)}`;
+        actions.appendChild(badge);
+      } else {
+        taskOptions.forEach((task) => {
+          const taskButton = document.createElement("button");
+          taskButton.type = "button";
+          taskButton.dataset.staffAction = "task";
+          taskButton.dataset.staffId = id;
+          taskButton.dataset.staffTaskId = task.id;
+          taskButton.textContent = task.title;
+          taskButton.title = `${task.detail} / ${task.duration} 轮`;
+          taskButton.disabled = state.gameOver;
+          actions.appendChild(taskButton);
+        });
+      }
+      if (definition.autonomy) {
+        const autonomy = document.createElement("button");
+        autonomy.type = "button";
+        autonomy.dataset.staffAction = "toggle";
+        autonomy.dataset.staffId = id;
+        autonomy.textContent = hired.autonomy ? "自动决定：开" : "自动决定：关";
+        actions.appendChild(autonomy);
+      }
+      const fire = document.createElement("button");
+      fire.type = "button";
+      fire.dataset.staffAction = "fire";
+      fire.dataset.staffId = id;
+      fire.textContent = `解雇 ${formatMoney(staffFireCost(player, hired))}`;
+      fire.title = "可随时开除，但合同期内需要支付遣散或违约费用。";
+      actions.appendChild(fire);
+    } else {
+      const hire = document.createElement("button");
+      hire.type = "button";
+      hire.dataset.staffAction = "hire";
+      hire.dataset.staffId = id;
+      hire.textContent = `签员工合同 ${formatMoney(definition.hireCost)}`;
+      hire.disabled = player.cash < definition.hireCost || state.gameOver;
+      hire.title = "签约后员工入职，之后按合同周期发工资。";
+      actions.appendChild(hire);
+    }
+
+    item.append(copy, actions);
+    list.appendChild(item);
+  });
+  panel.appendChild(list);
+  return panel;
+}
+
+function createStaffContractBlock(player, id, hired = null) {
+  const definition = staffDefinitions[id];
+  const block = document.createElement("div");
+  block.className = hired ? "staff-contract staff-contract-active" : "staff-contract";
+  const contract = hired || createStaffMemberContract(player, id);
+  const remaining = hired ? staffContractRemainingRounds(hired) : definition.termRounds;
+  const rows = hired
+    ? [
+        ["编号", contract.contractId],
+        ["合同", definition.contractTitle],
+        ["甲方", player?.name || DEFAULT_PLAYER_NAME],
+        ["乙方", definition.title],
+        ["工资", `${formatMoney(contract.salary)} / 每 ${contract.wageInterval} 轮`],
+        ["期限", `${remaining} 轮剩余`],
+        ["解雇", `遣散金 ${formatMoney(contract.severance)}`],
+        ["职责", definition.responsibility],
+        ["辞职", definition.resignationClause],
+      ]
+    : [
+        ["合同", definition.contractTitle],
+        ["工资", `${formatMoney(contract.salary)} / 每 ${contract.wageInterval} 轮`],
+        ["期限", `${remaining} 轮`],
+        ["解雇", `遣散金 ${formatMoney(contract.severance)}`],
+        ["辞职", definition.resignationClause],
+      ];
+  rows.forEach(([label, value]) => {
+    const item = document.createElement("span");
+    item.innerHTML = `<small>${label}</small><strong>${value}</strong>`;
+    block.appendChild(item);
+  });
+  return block;
+}
+
+function createStaffMemberContract(player, id) {
+  const definition = staffDefinitions[id];
+  const signedRound = Math.max(1, Number(state?.round) || 1);
+  return {
+    id,
+    contractId: `staff-${id}-${signedRound}-${Math.floor(Math.random() * 1000)}`,
+    signedRound,
+    hiredRound: signedRound,
+    termRounds: definition.termRounds,
+    wageInterval: STAFF_PAY_INTERVAL,
+    salary: definition.wage,
+    signingBonus: definition.hireCost,
+    severance: definition.severance,
+    morale: 72,
+    autonomy: Boolean(definition.autonomy),
+    taskId: "",
+    taskStartedRound: 0,
+    completedTasks: 0,
+    lastTaskLog: "",
+  };
+}
+
+function staffTaskOptions(id) {
+  return staffTaskDefinitions[id] || [];
+}
+
+function staffTaskDefinition(id, taskId) {
+  return staffTaskOptions(id).find((task) => task.id === taskId) || null;
+}
+
+function staffTaskLabel(staff) {
+  const task = staffTaskDefinition(staff.id, staff.taskId);
+  if (!task) return "待分配任务";
+  return `${task.title} ${staffTaskProgressLabel(staff, task)}`;
+}
+
+function staffTaskProgressLabel(staff, task = null) {
+  const definition = task || staffTaskDefinition(staff.id, staff.taskId);
+  if (!definition || !staff.taskStartedRound) return "";
+  const elapsed = Math.max(0, state.round - staff.taskStartedRound);
+  return `${Math.min(elapsed, definition.duration)}/${definition.duration} 轮`;
+}
+
+function staffMoraleLabel(staff) {
+  const morale = clamp(Number(staff?.morale) || 0, 0, 100);
+  if (morale >= 82) return `${morale} 高昂`;
+  if (morale >= 58) return `${morale} 稳定`;
+  if (morale >= 36) return `${morale} 动摇`;
+  return `${morale} 想辞职`;
+}
+
+function staffContractRemainingRounds(staff) {
+  const term = Math.max(1, Number(staff?.termRounds) || staffDefinitions[staff?.id]?.termRounds || 1);
+  const signed = Math.max(1, Number(staff?.signedRound || staff?.hiredRound) || 1);
+  return Math.max(0, signed + term - state.round);
+}
+
+function staffPayCountdownLabel() {
+  const remainder = state.round % STAFF_PAY_INTERVAL;
+  if (remainder === 0) return "本轮";
+  return `${STAFF_PAY_INTERVAL - remainder} 轮后`;
+}
+
+function staffFireCost(player, staff) {
+  if (!player || !staff) return 0;
+  const base = Math.max(0, Math.round(Number(staff.severance) || staffDefinitions[staff.id]?.severance || 0));
+  const activeTaskFee = staff.taskId ? Math.round((Number(staff.salary) || staffDefinitions[staff.id]?.wage || 0) * 0.45) : 0;
+  const termDiscount = staffContractRemainingRounds(staff) <= 0 ? 0.35 : 1;
+  return Math.round((base + activeTaskFee) * termDiscount);
+}
+
+function staffMember(player, id) {
+  if (!player) return null;
+  player.staff = normalizeStaffRoster(player.staff);
+  return player.staff.find((staff) => staff.id === id) || null;
+}
+
+function hasStaff(player, id) {
+  return Boolean(staffMember(player, id));
+}
+
+function staffHasAutonomy(player, id) {
+  const member = staffMember(player, id);
+  return Boolean(member && member.autonomy);
+}
+
+function staffWageTotal(player) {
+  return normalizeStaffRoster(player?.staff).reduce((total, staff) => total + (Number(staff.salary) || staffDefinitions[staff.id]?.wage || 0), 0);
+}
+
+function hireStaff(player, id) {
+  const definition = staffDefinitions[id];
+  if (!player || player.isAI || !definition || hasStaff(player, id) || player.cash < definition.hireCost) return;
+  player.cash -= definition.hireCost;
+  const staff = createStaffMemberContract(player, id);
+  player.staff = normalizeStaffRoster([...(player.staff || []), staff]);
+  addNews("员工合同", `${player.name} 与 ${definition.title} 签下${definition.contractTitle}，之后每 ${STAFF_PAY_INTERVAL} 轮支付工资。`, "deal");
+  logEvent(`${player.name} 签署员工合同：${definition.title}，签约金 ${formatMoney(definition.hireCost)}。`);
+  logDeal("员工合同", `${player.name} 聘用 ${definition.title} / ${definition.contractTitle}`, definition.hireCost, "coop");
+  showEventBurst(`${definition.title} 签约`, "gain");
+  checkTasks(player);
+  render();
+}
+
+function fireStaff(player, id) {
+  const definition = staffDefinitions[id];
+  if (!player || player.isAI || !definition || !hasStaff(player, id)) return;
+  const member = staffMember(player, id);
+  const fee = staffFireCost(player, member);
+  const paid = Math.min(player.cash, fee);
+  player.cash -= paid;
+  if (paid < fee) {
+    player.debt = (player.debt || 0) + (fee - paid);
+    adjustContractReputation(player, -3);
+  }
+  player.staff = normalizeStaffRoster(player.staff).filter((staff) => staff.id !== id);
+  addNews("员工解约", `${player.name} 解雇 ${definition.title}，支付遣散/违约费用 ${formatMoney(fee)}。`, paid < fee ? "debt" : "market");
+  logEvent(`${player.name} 解雇 ${definition.title}，合同解约费用 ${formatMoney(fee)}。`);
+  logDeal("员工解约", `${definition.title} 离职 / ${definition.fireClause}`, fee, "debt");
+  showEventBurst(`解雇 ${definition.title}`, "pay");
+  render();
+}
+
+function toggleStaffAutonomy(player, id) {
+  const definition = staffDefinitions[id];
+  if (!player || player.isAI || !definition || !definition.autonomy) return;
+  player.staff = normalizeStaffRoster(player.staff).map((staff) => staff.id === id ? { ...staff, autonomy: !staff.autonomy } : staff);
+  const member = staffMember(player, id);
+  state.status = `${definition.title} 自动决定已${member?.autonomy ? "开启" : "关闭"}。`;
+  render();
+}
+
+function assignStaffTask(player, id, taskId) {
+  const definition = staffDefinitions[id];
+  const task = staffTaskDefinition(id, taskId);
+  if (!player || player.isAI || !definition || !task) return;
+  const member = staffMember(player, id);
+  if (!member || member.taskId) return;
+  player.staff = normalizeStaffRoster(player.staff).map((staff) => {
+    if (staff.id !== id) return staff;
+    return {
+      ...staff,
+      taskId: task.id,
+      taskStartedRound: state.round,
+      morale: clamp((Number(staff.morale) || 70) + 3, 0, 100),
+    };
+  });
+  addNews("员工任务", `${player.name} 安排 ${definition.title} 执行「${task.title}」，预计 ${task.duration} 轮完成。`, "deal");
+  logEvent(`${player.name} 给 ${definition.title} 分配任务「${task.title}」。`);
+  state.status = `${definition.title} 开始执行「${task.title}」。`;
+  render();
+}
+
+function completeStaffTasks() {
+  activePlayers().forEach((player) => {
+    let changed = false;
+    const next = normalizeStaffRoster(player.staff).map((staff) => {
+      const task = staffTaskDefinition(staff.id, staff.taskId);
+      if (!task || !staff.taskStartedRound || state.round - staff.taskStartedRound < task.duration) return staff;
+      const result = completeStaffTask(player, staff, task);
+      changed = true;
+      return result;
+    });
+    if (changed) player.staff = normalizeStaffRoster(next);
+  });
+}
+
+function completeStaffTask(player, staff, task) {
+  const definition = staffDefinitions[staff.id];
+  let rewardText = "";
+  if (task.reward) {
+    player.cash += task.reward;
+    rewardText = `获得 ${formatMoney(task.reward)}`;
+  }
+  if (task.reputation) {
+    adjustContractReputation(player, task.reputation);
+    rewardText = rewardText ? `${rewardText}，合同声望 +${task.reputation}` : `合同声望 +${task.reputation}`;
+  }
+  if (task.debtReduction) {
+    const reduced = reducePlayerDebt(player, task.debtReduction);
+    if (reduced > 0) {
+      rewardText = rewardText ? `${rewardText}，降债 ${formatMoney(reduced)}` : `降债 ${formatMoney(reduced)}`;
+    } else {
+      const bonus = Math.round(task.debtReduction * 0.45);
+      player.cash += bonus;
+      rewardText = rewardText ? `${rewardText}，审查补贴 ${formatMoney(bonus)}` : `审查补贴 ${formatMoney(bonus)}`;
+    }
+  }
+  if (task.stock) {
+    const target = activeHotCity()?.index ?? ownedPropertyIndexes(player.id)[0];
+    if (Number.isInteger(target) && spaces[target]?.type === "property") {
+      player.stocks[target] = Math.min(STOCK_MAX_PER_CITY + IPO_STOCK_BONUS, (player.stocks[target] || 0) + task.stock);
+      rewardText = rewardText ? `${rewardText}，获得 ${spaceDisplayName(target)} 股票` : `获得 ${spaceDisplayName(target)} 股票`;
+    }
+  }
+  if (task.id === "draftContract") maybeCreateAiCoopProposal(player);
+  addNews("员工任务完成", `${definition.title} 完成「${task.title}」：${rewardText || "团队经验提升"}。`, "gain");
+  logEvent(`${player.name} 的${definition.title}完成任务「${task.title}」。`);
+  showEventBurst(`${definition.title} 完成任务`, "gain");
+  return {
+    ...staff,
+    taskId: "",
+    taskStartedRound: 0,
+    completedTasks: Math.min(99, (Number(staff.completedTasks) || 0) + 1),
+    morale: clamp((Number(staff.morale) || 70) + (task.morale || 6), 0, 100),
+    lastTaskLog: `${task.title}：${rewardText || "完成"}`,
+  };
+}
+
+function reducePlayerDebt(player, amount) {
+  let remaining = Math.max(0, Math.round(Number(amount) || 0));
+  if (!player || remaining <= 0 || (player.debt || 0) <= 0) return 0;
+  const finance = financeFor(player);
+  const keys = ["marginDebt", "convertibleDebt", "bondDebt"];
+  keys.forEach((key) => {
+    if (remaining <= 0) return;
+    const reduced = Math.min(finance[key] || 0, remaining);
+    finance[key] = Math.max(0, (finance[key] || 0) - reduced);
+    remaining -= reduced;
+  });
+  const reducedTotal = Math.min(player.debt || 0, Math.max(0, Math.round(Number(amount) || 0)));
+  player.debt = Math.max(0, (player.debt || 0) - reducedTotal);
+  return reducedTotal;
+}
+
+function payStaffWages() {
+  if (state.round % STAFF_PAY_INTERVAL !== 0) return;
+  activePlayers().forEach((player) => {
+    const wage = staffWageTotal(player);
+    if (wage <= 0 || player.bankrupt) return;
+    const paid = Math.min(player.cash, wage);
+    player.cash -= paid;
+    if (paid < wage) {
+      const roster = normalizeStaffRoster(player.staff);
+      const leaving = roster.sort((a, b) => (Number(a.morale) || 0) - (Number(b.morale) || 0)).shift();
+      player.staff = roster.filter((staff) => staff.id !== leaving?.id).map((staff) => ({
+        ...staff,
+        morale: clamp((Number(staff.morale) || 70) - 12, 0, 100),
+      }));
+      adjustContractReputation(player, -4);
+      addNews("员工辞职", `${player.name} 没付清工资，${staffDefinitions[leaving?.id]?.title || "一名员工"} 按合同辞职。`, "debt");
+      logEvent(`${player.name} 拖欠工资 ${formatMoney(wage - paid)}，${staffDefinitions[leaving?.id]?.title || "一名员工"} 辞职。`);
+    } else {
+      player.staff = normalizeStaffRoster(player.staff).map((staff) => ({
+        ...staff,
+        morale: clamp((Number(staff.morale) || 70) + 4, 0, 100),
+      }));
+      logEvent(`${player.name} 支付团队工资 ${formatMoney(wage)}。`);
+    }
+    if (!player.isAI && paid > 0) showEventBurst(`团队工资 -${formatMoney(paid)}`, "pay");
+  });
+}
+
+function maybeStaffResignations() {
+  if (state.round % 4 !== 0) return;
+  activePlayers().forEach((player) => {
+    const roster = normalizeStaffRoster(player.staff);
+    if (!roster.length) return;
+    const leaving = roster.find((staff) => shouldStaffResign(player, staff));
+    if (!leaving) return;
+    const definition = staffDefinitions[leaving.id];
+    player.staff = roster.filter((staff) => staff.id !== leaving.id);
+    adjustContractReputation(player, -2);
+    addNews("员工辞职", `${definition.title} 向 ${player.name} 提出辞职：${staffResignationReason(player, leaving)}。`, "debt");
+    logEvent(`${player.name} 的${definition.title}主动辞职。`);
+    showEventBurst(`${definition.title} 辞职`, "pay");
+  });
+}
+
+function shouldStaffResign(player, staff) {
+  if (!player || !staff || state.round - (staff.hiredRound || 1) < 3) return false;
+  const morale = Number(staff.morale) || 70;
+  const contractEnded = staffContractRemainingRounds(staff) <= 0;
+  const cashStress = player.cash < staffWageTotal(player) * 0.5;
+  let chance = contractEnded ? 0.22 : 0.02;
+  if (morale < 35) chance += 0.18;
+  else if (morale < 50) chance += 0.08;
+  if (cashStress) chance += 0.1;
+  if (staff.taskId) chance -= 0.04;
+  return Math.random() < clamp(chance, 0, 0.32);
+}
+
+function staffResignationReason(player, staff) {
+  if (staffContractRemainingRounds(staff) <= 0) return "合同到期后不再续约";
+  if ((Number(staff.morale) || 70) < 35) return "士气过低";
+  if (player.cash < staffWageTotal(player) * 0.5) return "担心工资风险";
+  return "收到更好的职业机会";
 }
 
 function renderGameGoals(player) {
@@ -5485,10 +5988,12 @@ function renderFieldTradeOffers(current, groups = tradeOfferGroupsForPlayer(curr
 function renderDealDashboard(player) {
   const dashboard = document.createElement("div");
   dashboard.className = "deal-dashboard";
+  const hot = activeHotCity();
   dashboard.append(
     createGameStat("全球指数", marketIndexLabel()),
     createGameStat("地产指数", realEstateIndexLabel()),
     createGameStat("股票指数", stockIndexLabel()),
+    createGameStat("热点城市", hot ? `${spaceDisplayName(hot.index)} +${Math.round((hot.bonus - 1) * 100)}%` : "暂无"),
     createGameStat("融资利率", `${Math.round(globalFinancingRate() * 1000) / 10}%`),
     createGameStat("信用额度", formatMoney(availableCredit(player))),
     createGameStat("组合市值", formatMoney(portfolioMarketValue(player))),
@@ -8309,9 +8814,24 @@ function handleCardClick(event) {
     return;
   }
 
+  const staffButton = event.target.closest("button[data-staff-action]");
+  if (staffButton) {
+    handleStaffAction(staffButton.dataset.staffAction, staffButton.dataset.staffId, staffButton.dataset.staffTaskId);
+    return;
+  }
+
   const button = event.target.closest("button[data-card-index]");
   if (!button) return;
   useCurrentCard(Number(button.dataset.cardIndex));
+}
+
+function handleStaffAction(action, id, taskId = "") {
+  const player = currentPlayer();
+  if (!player || player.isAI || player.bankrupt) return;
+  if (action === "hire") hireStaff(player, id);
+  if (action === "fire") fireStaff(player, id);
+  if (action === "toggle") toggleStaffAutonomy(player, id);
+  if (action === "task") assignStaffTask(player, id, taskId);
 }
 
 function handleAuctionClick(event) {
@@ -9259,6 +9779,27 @@ function runAuctionAITurn() {
   }
 }
 
+function runStaffAuctionTurn() {
+  const bidder = currentAuctionBidder();
+  if (!bidder || bidder.isAI || state.phase !== "auction" || !staffHasAutonomy(bidder, "auctionAgent")) return;
+  const bid = nextAuctionBid();
+  const agentLimit = staffAuctionMaxBid(bidder, state.auction.propertyIndex);
+  if (bid <= agentLimit) {
+    logEvent(`${bidder.name} 的拍卖代理判断可跟，自动出价 ${formatMoney(bid)}。`);
+    placeAuctionBid(bidder);
+  } else {
+    logEvent(`${bidder.name} 的拍卖代理认为价格过高，自动退出。`);
+    passAuction(bidder);
+  }
+}
+
+function staffAuctionMaxBid(player, propertyIndex) {
+  const hotBonus = activeHotCity()?.index === propertyIndex ? 1.16 : 1;
+  const base = Math.max(propertyPrice(propertyIndex) * 0.9, cityValuation(propertyIndex) * 0.96) * hotBonus;
+  const cashLimit = Math.max(0, player.cash - Math.max(120, staffWageTotal(player)));
+  return Math.min(cashLimit, Math.round(base / AUCTION_INCREMENT) * AUCTION_INCREMENT);
+}
+
 function auctionMaxBid(player, propertyIndex) {
   const space = spaces[propertyIndex];
   const difficulty = aiDifficulty();
@@ -9267,10 +9808,12 @@ function auctionMaxBid(player, propertyIndex) {
   const ownsGroup = groupOwned > 0;
   const styleNeed = player.aiStyle === "auctioneer" ? 0.16 : player.aiStyle === "collector" && ownsGroup ? 0.18 : 0;
   const setNeed = groupOwned >= CONTINENT_SET_SIZE - 1 ? 0.26 * difficulty.setFocus : groupOwned * 0.08 * difficulty.setFocus;
+  const revengeNeed = player.grudgeTarget && state.auction?.leaderId === player.grudgeTarget ? 0.16 : 0;
+  const hotNeed = activeHotCity()?.index === propertyIndex ? 0.18 : 0;
   const groupNeed = (ownsGroup ? 1.12 : 0.78) + styleNeed + setNeed;
   const valueCeiling = Math.max(propertyPrice(propertyIndex), cityValuation(propertyIndex)) * (0.74 + difficulty.valueFocus * 0.18);
   const cashCeiling = Math.max(0, player.cash - difficulty.auctionReserve);
-  const rawBid = Math.max(propertyPrice(propertyIndex) * groupNeed * difficulty.bidFactor, valueCeiling) + style.buyBias * 2.4;
+  const rawBid = Math.max(propertyPrice(propertyIndex) * (groupNeed + revengeNeed + hotNeed) * difficulty.bidFactor, valueCeiling) + style.buyBias * 2.4;
   return Math.min(cashCeiling, Math.round(rawBid / AUCTION_INCREMENT) * AUCTION_INCREMENT);
 }
 
@@ -10869,7 +11412,7 @@ function stockPrice(index) {
     limitUp: 1.35,
     limitDown: 0.68,
   }[currentMarket().id] || 1;
-  return Math.max(20, Math.round(((space.price * 0.22 + revenueHeat + levelHeat + fundingHeat + companyHeat + publicHeat + ratingHeat + headquartersHeat) * marketFactor) / 5) * 5);
+  return Math.max(20, Math.round(((space.price * 0.22 + revenueHeat + levelHeat + fundingHeat + companyHeat + publicHeat + ratingHeat + headquartersHeat) * marketFactor * hotCityStockMultiplier(index)) / 5) * 5);
 }
 
 function currentRules() {
@@ -10878,6 +11421,22 @@ function currentRules() {
 
 function currentMarket() {
   return marketDefinitions[state.market?.id] || marketDefinitions.steady;
+}
+
+function activeHotCity() {
+  state.hotCity = normalizeHotCity(state.hotCity);
+  if (!state.hotCity || state.hotCity.expiresRound < state.round) return null;
+  return state.hotCity;
+}
+
+function hotCityRentMultiplier(index) {
+  const hot = activeHotCity();
+  return hot?.index === index ? hot.bonus : 1;
+}
+
+function hotCityStockMultiplier(index) {
+  const hot = activeHotCity();
+  return hot?.index === index ? 1 + (hot.bonus - 1) * 1.35 : 1;
 }
 
 function localizedMarketTitle(market = currentMarket()) {
@@ -10968,6 +11527,51 @@ function normalizeStocks(stocks) {
     }
   });
   return result;
+}
+
+function normalizeStaffRoster(staff) {
+  if (!Array.isArray(staff)) return [];
+  const seen = new Set();
+  return staff
+    .map((item) => {
+      const id = typeof item === "string" ? item : String(item?.id || "");
+      const definition = staffDefinitions[id];
+      if (!definition || seen.has(id)) return null;
+      seen.add(id);
+      const hiredRound = Math.max(1, Number(item?.hiredRound || item?.signedRound) || 1);
+      const signedRound = Math.max(1, Number(item?.signedRound || hiredRound) || 1);
+      const taskId = staffTaskDefinition(id, String(item?.taskId || "")) ? String(item.taskId) : "";
+      return {
+        id,
+        autonomy: typeof item === "object" && item !== null ? Boolean(item.autonomy) : Boolean(definition.autonomy),
+        contractId: String(item?.contractId || `staff-${id}-${signedRound}`),
+        signedRound,
+        hiredRound,
+        termRounds: clamp(Number(item?.termRounds) || definition.termRounds, 1, 40),
+        wageInterval: clamp(Number(item?.wageInterval) || STAFF_PAY_INTERVAL, 1, 8),
+        salary: Math.max(0, Math.round(Number(item?.salary) || definition.wage)),
+        signingBonus: Math.max(0, Math.round(Number(item?.signingBonus) || definition.hireCost)),
+        severance: Math.max(0, Math.round(Number(item?.severance) || definition.severance)),
+        morale: clamp(Number(item?.morale) || 72, 0, 100),
+        taskId,
+        taskStartedRound: taskId ? Math.max(1, Number(item?.taskStartedRound) || signedRound) : 0,
+        completedTasks: Math.max(0, Math.round(Number(item?.completedTasks) || 0)),
+        lastTaskLog: String(item?.lastTaskLog || "").slice(0, 80),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeHotCity(hotCity) {
+  if (!hotCity || typeof hotCity !== "object") return null;
+  const index = Number(hotCity.index);
+  if (!Number.isInteger(index) || spaces[index]?.type !== "property") return null;
+  return {
+    index,
+    expiresRound: Math.max(1, Number(hotCity.expiresRound) || 1),
+    bonus: clamp(Number(hotCity.bonus) || 1.25, 1, 1.8),
+    reason: String(hotCity.reason || "全球资本追逐").slice(0, 24),
+  };
 }
 
 function normalizeSpyIntel(intel) {
@@ -11215,24 +11819,50 @@ function dailyChallengeMarketId() {
   return ids[dailyChallengeSeed() % ids.length];
 }
 
-function createGameGoals() {
+function gameGoalTemplates() {
   return [
-    { id: "worth8000", type: "netWorth", title: "30 轮内资产达到 ¥8000", target: 8000, dueRound: 30, reward: 500, completedBy: [] },
-    { id: "control3continents", type: "continents", title: "控制 3 个洲套装", target: 3, reward: 420, completedBy: [] },
-    { id: "win5auctions", type: "auctions", title: "赢下 5 次拍卖", target: 5, reward: 360, completedBy: [] },
+    { id: "worth8000", type: "netWorth", title: "30 轮内资产达到 ¥8000", target: 8000, dueRound: 30, reward: 500 },
+    { id: "control2continents", type: "continents", title: "控制 2 个洲套装", target: 2, reward: 360 },
+    { id: "control3continents", type: "continents", title: "控制 3 个洲套装", target: 3, reward: 420 },
+    { id: "win5auctions", type: "auctions", title: "赢下 5 次拍卖", target: 5, reward: 360 },
+    { id: "stockLeader", type: "stockRank", title: "成为股票第一名", target: 1, reward: 380 },
+    { id: "sign3contracts", type: "contracts", title: "签下 3 份合作合同", target: 3, reward: 390 },
+    { id: "bankruptOneRival", type: "bankrupts", title: "让 1 名对手破产", target: 1, reward: 520 },
+    { id: "hire2staff", type: "staff", title: "雇佣 2 名手下人员", target: 2, reward: 260 },
   ];
 }
 
+function seededPick(items, count, seed) {
+  const pool = [...items];
+  let value = Math.max(1, Math.round(Number(seed) || Date.now()));
+  const picked = [];
+  while (pool.length && picked.length < count) {
+    value = (value * 9301 + 49297) % 233280;
+    const index = value % pool.length;
+    picked.push(pool.splice(index, 1)[0]);
+  }
+  return picked;
+}
+
+function createGameGoals(seed = Date.now()) {
+  return seededPick(gameGoalTemplates(), 3, seed).map((goal) => ({ ...goal, completedBy: [] }));
+}
+
 function normalizeGoals(goals) {
-  const defaults = createGameGoals();
-  if (!Array.isArray(goals)) return defaults;
-  return defaults.map((goal) => {
-    const saved = goals.find((item) => item?.id === goal.id);
-    return {
-      ...goal,
-      completedBy: Array.isArray(saved?.completedBy) ? saved.completedBy.filter(Boolean) : [],
-    };
-  });
+  const templates = gameGoalTemplates();
+  if (!Array.isArray(goals) || !goals.length) return createGameGoals();
+  const normalized = goals
+    .map((goal) => {
+      const template = templates.find((item) => item.id === goal?.id);
+      if (!template) return null;
+      return {
+        ...template,
+        completedBy: Array.isArray(goal.completedBy) ? goal.completedBy.filter(Boolean) : [],
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+  return normalized.length ? normalized : createGameGoals();
 }
 
 function hiddenMissionTemplates() {
@@ -11329,6 +11959,23 @@ function goalProgress(goal, player) {
     const wins = player.auctionWins || 0;
     return { percent: (wins / goal.target) * 100, label: `${wins}/${goal.target} 次拍卖` };
   }
+  if (goal.type === "stockRank") {
+    const ranking = [...activePlayers()].sort((a, b) => portfolioMarketValue(b) - portfolioMarketValue(a));
+    const rank = ranking.findIndex((item) => item.id === player.id) + 1 || ranking.length;
+    return { percent: rank === 1 ? 100 : 55, label: rank === 1 ? "股票第一" : `当前第 ${rank} 名` };
+  }
+  if (goal.type === "contracts") {
+    const count = coopContractsForPlayer(player).filter((contract) => contract.status === "active" || contract.status === "completed").length;
+    return { percent: (count / goal.target) * 100, label: `${count}/${goal.target} 份合同` };
+  }
+  if (goal.type === "bankrupts") {
+    const count = state.players.filter((item) => item.id !== player.id && item.bankrupt).length;
+    return { percent: (count / goal.target) * 100, label: `${count}/${goal.target} 名对手` };
+  }
+  if (goal.type === "staff") {
+    const count = player.staff?.length || 0;
+    return { percent: (count / goal.target) * 100, label: `${count}/${goal.target} 名手下` };
+  }
   return { percent: 0, label: "未开始" };
 }
 
@@ -11337,6 +11984,10 @@ function isGoalComplete(goal, player) {
   if (goal.type === "netWorth") return state.round <= goal.dueRound && netWorth(player) >= goal.target;
   if (goal.type === "continents") return continentSetCount(player.id) >= goal.target;
   if (goal.type === "auctions") return (player.auctionWins || 0) >= goal.target;
+  if (goal.type === "stockRank") return [...activePlayers()].sort((a, b) => portfolioMarketValue(b) - portfolioMarketValue(a))[0]?.id === player.id;
+  if (goal.type === "contracts") return coopContractsForPlayer(player).filter((contract) => contract.status === "active" || contract.status === "completed").length >= goal.target;
+  if (goal.type === "bankrupts") return state.players.filter((item) => item.id !== player.id && item.bankrupt).length >= goal.target;
+  if (goal.type === "staff") return (player.staff?.length || 0) >= goal.target;
   return false;
 }
 
@@ -11719,7 +12370,8 @@ function bankLoanInterestRate(player) {
   const risk = riskIndex(player).score;
   const bankNetworkDiscount = ownedCompanyCount(player, "bank") * 0.006;
   const reputationPenalty = Math.max(0, 75 - contractReputationFor(player)) / 2600;
-  return clamp(LOAN_INTEREST_RATE + risk / 1800 + reputationPenalty - tier.rateDiscount - bankNetworkDiscount, 0.025, 0.16);
+  const staffDiscount = (hasStaff(player, "riskOfficer") ? 0.008 : 0) + (hasStaff(player, "contractBroker") ? 0.004 : 0);
+  return clamp(LOAN_INTEREST_RATE + risk / 1800 + reputationPenalty - tier.rateDiscount - bankNetworkDiscount - staffDiscount, 0.025, 0.16);
 }
 
 function bankDepositInterestFor(player) {
@@ -11750,9 +12402,10 @@ function riskIndex(player) {
   const structuredDebtRatio = financingDebtTotal(player) / worth;
   const cashPressure = player.cash < 180 ? 24 : player.cash < 420 ? 12 : 0;
   const mortgageCount = ownedPropertyIndexes(player.id).filter((index) => state.mortgages[index]).length;
-  const marketPressure = ["crisis", "stockCrash"].includes(currentMarket().id) ? 10 : 0;
+  const marketPressure = ["crisis", "stockCrash", "blackSwan", "limitDown"].includes(currentMarket().id) ? 10 : 0;
   const dilutionPressure = finance.equityDilution * 35;
-  const score = clamp(Math.round(debtRatio * 48 + structuredDebtRatio * 24 + shortRatio * 36 + stockConcentration * 18 + dilutionPressure + cashPressure + mortgageCount * 6 + marketPressure), 0, 100);
+  const staffBuffer = hasStaff(player, "riskOfficer") ? 9 : 0;
+  const score = clamp(Math.round(debtRatio * 48 + structuredDebtRatio * 24 + shortRatio * 36 + stockConcentration * 18 + dilutionPressure + cashPressure + mortgageCount * 6 + marketPressure - staffBuffer), 0, 100);
   return { score, tone: score >= 70 ? "high" : score >= 42 ? "mid" : "low" };
 }
 
@@ -12268,6 +12921,36 @@ function maybeTriggerBlackSwanEvent() {
   showEventBurst(market.title, id === "limitUp" ? "gain" : "pay");
 }
 
+function rotateHotCityIfNeeded() {
+  const current = activeHotCity();
+  if (current && current.expiresRound >= state.round) return;
+  if (state.round < 3 || state.round % 4 !== 0) return;
+  const events = [
+    { specialty: "tech", reason: "科技革命" },
+    { specialty: "tourism", reason: "旅游热潮" },
+    { specialty: "finance", reason: "金融资金涌入" },
+    { specialty: "transit", reason: "全球航线扩张" },
+    { specialty: "culture", reason: "城市故事事件" },
+  ];
+  const event = events[(state.round + (state.marketEventHistory?.length || 0)) % events.length];
+  const candidates = spaces
+    .map((space, index) => ({ space, index }))
+    .filter(({ space }) => space.type === "property")
+    .filter(({ space }) => !event.specialty || space.specialty === event.specialty);
+  const pool = candidates.length ? candidates : spaces.map((space, index) => ({ space, index })).filter(({ space }) => space.type === "property");
+  const picked = pool[(state.round * 7 + pool.length) % pool.length];
+  if (!picked) return;
+  state.hotCity = {
+    index: picked.index,
+    expiresRound: state.round + 3,
+    bonus: 1.28,
+    reason: event.reason,
+  };
+  addNews("竞争城市热点", `${spaceDisplayName(picked.index)} 成为热点：${event.reason}，租金和股价临时上涨。`, "gain");
+  logEvent(`${spaceDisplayName(picked.index)} 成为竞争热点，所有玩家都会更想抢它。`);
+  flashTile(picked.index, "build");
+}
+
 function encodeShareCode(gameState) {
   try {
     const payload = JSON.parse(JSON.stringify(gameState));
@@ -12400,20 +13083,20 @@ function calculateRent(index, rollTotal) {
   if (space.kind === "station") {
     const count = ownedPropertyIndexes(ownerId).filter((ownedIndex) => spaces[ownedIndex].kind === "station").length;
     const levelMultiplier = 1 + state.levels[index] * 0.65;
-    return Math.round(space.rent * Math.max(1, count) * levelMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent);
+    return Math.round(space.rent * Math.max(1, count) * levelMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent * hotCityRentMultiplier(index));
   }
 
   if (space.kind === "utility") {
     const count = ownedPropertyIndexes(ownerId).filter((ownedIndex) => spaces[ownedIndex].kind === "utility").length;
     const levelMultiplier = 1 + state.levels[index] * 0.55;
-    return Math.round(rollTotal * (count >= 2 ? 10 : 5) * levelMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent);
+    return Math.round(rollTotal * (count >= 2 ? 10 : 5) * levelMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent * hotCityRentMultiplier(index));
   }
 
   const ownsFullGroup = ownsFullStreetGroup(ownerId, space.group);
   const ownsSet = ownsContinentSet(ownerId, space.group);
   const levelMultiplier = 1 + state.levels[index] * (ownsSet ? 1.48 : 1.25);
   const groupMultiplier = ownsFullGroup ? 2 : ownsSet ? 1.35 : 1;
-  return Math.round(space.rent * levelMultiplier * groupMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent);
+  return Math.round(space.rent * levelMultiplier * groupMultiplier * cityRentMultiplier(index) * headquarterRentMultiplier(ownerId, index) * cityCombinationRentMultiplier(owner, index) * rentBonusFor(owner) * currentMarket().rent * hotCityRentMultiplier(index));
 }
 
 function cityRentMultiplier(index) {
@@ -12836,12 +13519,17 @@ function advanceToNextPlayer() {
       state.round += 1;
       rotateMarket();
       maybeTriggerBlackSwanEvent();
+      rotateHotCityIfNeeded();
       applyBankInterest();
+      completeStaffTasks();
+      payStaffWages();
+      maybeStaffResignations();
 	      applyDebtInterest();
 	      applyShortBorrowInterest();
 	      applyMarginCalls();
 	      applyCitySystems();
 	      applyCoopContracts();
+	      maybeCreateAiCoopProposal(humanPlayer());
 	      captureStockTrends();
       advanceRouteMission();
       activePlayers().forEach(completeHiddenMissions);
@@ -13168,6 +13856,8 @@ function scheduleAutomation() {
     const bidder = currentAuctionBidder();
     if (bidder?.isAI) {
       automationTimer = window.setTimeout(runAuctionAITurn, 320);
+    } else if (bidder && staffHasAutonomy(bidder, "auctionAgent")) {
+      automationTimer = window.setTimeout(runStaffAuctionTurn, 760);
     } else if (bidder) {
       const remaining = (state.auction?.deadline || Date.now()) - Date.now();
       if (remaining <= 0) {

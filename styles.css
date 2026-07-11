@@ -4263,6 +4263,143 @@ html[lang="es"] .action-bar button.is-next-action::after {
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 249, 252, 0.72));
 }
 
+.staff-panel {
+  display: grid;
+  gap: 9px;
+}
+
+.staff-summary,
+.staff-list {
+  display: grid;
+  gap: 7px;
+}
+
+.staff-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.staff-note {
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(15, 131, 151, 0.14);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(235, 250, 252, 0.72);
+  font-size: 0.65rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.staff-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid rgba(34, 48, 66, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.staff-hired {
+  border-color: rgba(45, 159, 111, 0.28);
+  background: linear-gradient(135deg, rgba(235, 250, 242, 0.95), rgba(255, 255, 255, 0.9));
+}
+
+.staff-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.staff-copy strong {
+  color: var(--charcoal);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.staff-copy span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 820;
+  line-height: 1.3;
+}
+
+.staff-contract {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.staff-contract span {
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.staff-contract small,
+.staff-contract strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.staff-contract small {
+  color: var(--teal);
+  font-size: 0.54rem;
+  font-weight: 950;
+}
+
+.staff-contract strong {
+  color: var(--charcoal);
+  font-size: 0.58rem;
+  font-weight: 880;
+  line-height: 1.25;
+}
+
+.staff-contract-active span {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.staff-actions {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+  min-width: 126px;
+}
+
+.staff-actions button {
+  min-height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 48, 66, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--charcoal);
+  font-size: 0.62rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.staff-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.staff-task-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--teal);
+  background: rgba(235, 250, 242, 0.95);
+  font-size: 0.58rem;
+  font-weight: 950;
+  text-align: center;
+}
+
 .auction-card {
   --auction-color: var(--gold);
   border: 1px solid rgba(34, 48, 66, 0.14);
@@ -6249,6 +6386,17 @@ html[lang="es"] .action-bar button.is-next-action::after {
     padding: 6px;
   }
 
+  .staff-summary,
+  .staff-card,
+  .staff-contract {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-actions {
+    justify-items: stretch;
+    min-width: 0;
+  }
+
   .main-action-drawer[data-drawer-id="main:turn"] .action-drawer-buttons {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -6289,8 +6437,14 @@ html[lang="es"] .action-bar button.is-next-action::after {
   .atlas-filter-bar,
   .stock-leaderboard,
   .asset-radar-card,
-  .contract-inbox-row {
+  .contract-inbox-row,
+  .staff-summary,
+  .staff-card {
     grid-template-columns: 1fr;
+  }
+
+  .staff-actions {
+    justify-items: stretch;
   }
 
   .asset-radar-svg {
