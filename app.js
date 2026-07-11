@@ -60,7 +60,7 @@ const COMPANY_BUILD_COST = {
   bank: 260,
   techPark: 240,
 };
-const SIDE_PANEL_MODES = ["deal", "coop", "player", "world", "goals", "log"];
+const SIDE_PANEL_MODES = ["deal", "coop", "staff", "player", "world", "goals", "log"];
 const DEFAULT_DRAWER_OPEN = {
   "main:turn": true,
   "main:deal": false,
@@ -253,6 +253,9 @@ const languageDefinitions = {
     sideCoopDetail: "签约 / 分红 / 违约",
     sideCoopSignable: (count) => `${count} 可签`,
     sideCoopActive: (count) => `${count} 份`,
+    sideStaff: "员工",
+    sideStaffDetail: "合同 / 任务 / 工资",
+    sideStaffMeta: (count, wage) => `${count} 人 / ${wage}`,
     sidePlayer: "玩家",
     sidePlayerDetail: "卡片 / 资产 / 银行",
     sidePlayerCards: (count) => `${count} 张卡`,
@@ -389,6 +392,9 @@ const languageDefinitions = {
     sideCoopDetail: "Sign / Dividends / Breach",
     sideCoopSignable: (count) => `${count} Ready`,
     sideCoopActive: (count) => `${count} Active`,
+    sideStaff: "Staff",
+    sideStaffDetail: "Contracts / Tasks / Payroll",
+    sideStaffMeta: (count, wage) => `${count} / ${wage}`,
     sidePlayer: "Player",
     sidePlayerDetail: "Cards / Assets / Bank",
     sidePlayerCards: (count) => `${count} Cards`,
@@ -525,6 +531,9 @@ const languageDefinitions = {
     sideCoopDetail: "Firma / Dividendos / Incumplir",
     sideCoopSignable: (count) => `${count} listos`,
     sideCoopActive: (count) => `${count} activos`,
+    sideStaff: "Personal",
+    sideStaffDetail: "Contratos / Tareas / Sueldo",
+    sideStaffMeta: (count, wage) => `${count} / ${wage}`,
     sidePlayer: "Jugador",
     sidePlayerDetail: "Cartas / Activos / Banco",
     sidePlayerCards: (count) => `${count} cartas`,
@@ -2587,6 +2596,7 @@ const shopPanel = document.getElementById("shopPanel");
 const savePanel = document.getElementById("savePanel");
 const tradePanel = document.getElementById("tradePanel");
 const coopPanel = document.getElementById("coopPanel");
+const staffPanel = document.getElementById("staffPanel");
 const tutorialPanel = document.getElementById("tutorialPanel");
 const panelTabs = document.getElementById("panelTabs");
 const progressPanel = document.getElementById("progressPanel");
@@ -4217,6 +4227,7 @@ function render() {
   renderSaveSlots();
   renderTrade();
   renderCoop();
+  renderStaffHub();
   renderProgress();
   renderWorldPanel();
   renderShare();
@@ -4490,6 +4501,17 @@ function sidePanelDrawerDefinitions() {
       panels: () => [coopPanel],
     },
     {
+      id: "staff",
+      label: uiText("sideStaff"),
+      detail: uiText("sideStaffDetail"),
+      icon: "shield",
+      meta: () => {
+        const player = humanPlayer() || current;
+        return player ? uiText("sideStaffMeta", normalizeStaffRoster(player.staff).length, formatMoney(staffWageTotal(player))) : uiText("none");
+      },
+      panels: () => [staffPanel],
+    },
+    {
       id: "player",
       label: uiText("sidePlayer"),
       detail: uiText("sidePlayerDetail"),
@@ -4523,7 +4545,7 @@ function sidePanelDrawerDefinitions() {
     },
   ];
   if (state.config?.simpleMode) {
-    return drawers.filter((drawer) => ["deal", "coop", "player", "world"].includes(drawer.id));
+    return drawers.filter((drawer) => ["deal", "coop", "staff", "player", "world"].includes(drawer.id));
   }
   return drawers;
 }
@@ -4534,6 +4556,7 @@ function renderSidePanelVisibility() {
   const groups = {
     deal: [tradePanel, auctionPanel, shopPanel],
     coop: [coopPanel],
+    staff: [staffPanel],
     player: [playersPanel, cardsPanel, assetsPanel],
     world: [worldPanel],
     goals: [progressPanel, savePanel, sharePanel],
@@ -4542,7 +4565,7 @@ function renderSidePanelVisibility() {
 
   Object.entries(groups).forEach(([group, panels]) => {
     panels.forEach((panel) => {
-      if (panel) panel.hidden = collapsed || group !== mode || (state.config?.simpleMode && !["deal", "coop", "player", "world"].includes(group));
+      if (panel) panel.hidden = collapsed || group !== mode || (state.config?.simpleMode && !["deal", "coop", "staff", "player", "world"].includes(group));
     });
   });
 }
@@ -6139,6 +6162,23 @@ function renderCoop() {
     meta: "条件",
     open: !offerCount && !activeCount,
   }));
+}
+
+function renderStaffHub() {
+  if (!staffPanel) return;
+  staffPanel.innerHTML = "";
+  const current = currentPlayer();
+  const player = humanPlayer() || current;
+  staffPanel.classList.toggle("is-hidden", !player || state.gameOver);
+  if (!player || state.gameOver) return;
+
+  const title = document.createElement("div");
+  title.className = "section-title staff-section-title";
+  title.textContent = "员工中心";
+  const hint = document.createElement("p");
+  hint.className = "panel-hint";
+  hint.textContent = "这里专门管理员工：签员工合同、分配任务、查看工资周期、解雇和员工辞职都会在这里处理。";
+  staffPanel.append(title, hint, renderStaffPanel(player));
 }
 
 function renderCoopContractsPanel(player, options = {}) {
