@@ -179,14 +179,13 @@ button:disabled {
 .board-wrap {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overflow: visible;
   padding-bottom: 4px;
 }
 
 .board {
   position: relative;
-  width: var(--board-width, 1220px);
+  width: min(var(--board-width, 1220px), 100%, calc(100vh - 64px));
   max-width: none;
   aspect-ratio: 1;
   margin: 0 auto;
@@ -6038,7 +6037,7 @@ html[lang="es"] .action-bar button.is-next-action::after {
   }
 
   .board {
-    width: var(--board-width, 1560px);
+    width: min(var(--board-width, 1560px), 100%, calc(100svh - 164px));
     max-width: none;
     gap: 3px;
     padding: 8px;
