@@ -161,6 +161,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "先自己玩",
     startTutorialGame: "开始教学局",
     atlasEyebrow: "世界图鉴",
+    mapFitMode: "全图模式",
+    mapDetailMode: "细节模式",
+    citySearchLabel: "城市搜索",
+    citySearchPlaceholder: "搜索城市",
+    cityJump: "定位",
+    advisorButton: (tag) => `建议：${tag}`,
+    cityLocated: (name) => `已定位 ${name}，并打开城市卡。`,
+    cityNotFound: "没有找到这座城市。",
+    mapDetailStatus: "已切到细节模式：地图会放大，适合看清城市。",
+    mapFitStatus: "已切到全图模式：整个地图会优先保持在屏幕内。",
     round: (round) => `第 ${round} 轮`,
     readyStatus: (name) => `轮到 ${name}，准备掷骰。`,
     gameStarted: "新棋局开始。",
@@ -300,6 +310,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "Play Freely",
     startTutorialGame: "Start Tutorial",
     atlasEyebrow: "World Atlas",
+    mapFitMode: "Full Map",
+    mapDetailMode: "Detail Map",
+    citySearchLabel: "City Search",
+    citySearchPlaceholder: "Search city",
+    cityJump: "Locate",
+    advisorButton: (tag) => `Advice: ${tag}`,
+    cityLocated: (name) => `Located ${name} and opened its city card.`,
+    cityNotFound: "City not found.",
+    mapDetailStatus: "Detail mode is on: the board is larger for reading cities.",
+    mapFitStatus: "Full map mode is on: the board stays inside the screen first.",
     round: (round) => `Round ${round}`,
     readyStatus: (name) => `${name}'s turn. Roll the dice.`,
     gameStarted: "New game started.",
@@ -439,6 +459,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "Jugar Libre",
     startTutorialGame: "Iniciar Tutorial",
     atlasEyebrow: "Atlas Mundial",
+    mapFitMode: "Mapa Completo",
+    mapDetailMode: "Mapa Detalle",
+    citySearchLabel: "Buscar Ciudad",
+    citySearchPlaceholder: "Buscar ciudad",
+    cityJump: "Ubicar",
+    advisorButton: (tag) => `Consejo: ${tag}`,
+    cityLocated: (name) => `${name} ubicado y carta abierta.`,
+    cityNotFound: "Ciudad no encontrada.",
+    mapDetailStatus: "Modo detalle activado: el tablero se amplía para leer ciudades.",
+    mapFitStatus: "Modo mapa completo activado: el tablero cabe primero en la pantalla.",
     round: (round) => `Ronda ${round}`,
     readyStatus: (name) => `Turno de ${name}. Tira los dados.`,
     gameStarted: "Nueva partida iniciada.",
@@ -557,17 +587,17 @@ const languageOptionLabels = {
 
 const mainActionDrawerCopy = {
   zh: {
-    "main:turn": ["回合行动", "掷骰 / 合同 / 结束"],
+    "main:turn": ["回合行动", "掷骰 / 建议 / 结束"],
     "main:deal": ["买地决策", "购买 / 拍卖"],
     "main:tools": ["工具建设", "冒险 / 升级"],
   },
   en: {
-    "main:turn": ["Turn Actions", "Roll / Contracts / End"],
+    "main:turn": ["Turn Actions", "Roll / Advice / End"],
     "main:deal": ["Buy Decision", "Buy / Auction"],
     "main:tools": ["Tools & Build", "Venture / Upgrade"],
   },
   es: {
-    "main:turn": ["Turno", "Dados / Contratos / Fin"],
+    "main:turn": ["Turno", "Dados / Consejo / Fin"],
     "main:deal": ["Comprar", "Comprar / Subasta"],
     "main:tools": ["Herramientas", "Evento / Mejorar"],
   },
@@ -2607,6 +2637,11 @@ const logPanel = document.querySelector(".log-panel");
 const eventLog = document.getElementById("eventLog");
 const cityTicker = document.getElementById("cityTicker");
 const worldMap = document.getElementById("worldMap");
+const mapViewButton = document.getElementById("mapViewButton");
+const cityJumpLabel = document.getElementById("cityJumpLabel");
+const cityJumpInput = document.getElementById("cityJumpInput");
+const cityJumpList = document.getElementById("cityJumpList");
+const cityJumpButton = document.getElementById("cityJumpButton");
 const effectsLayer = document.getElementById("effectsLayer");
 const statusLine = document.getElementById("statusLine");
 const roundCounter = document.getElementById("roundCounter");
@@ -2620,6 +2655,7 @@ const declineButton = document.getElementById("declineButton");
 const ventureButton = document.getElementById("ventureButton");
 const quickUpgradeButton = document.getElementById("quickUpgradeButton");
 const endButton = document.getElementById("endButton");
+const advisorButton = document.getElementById("advisorButton");
 const contractButton = document.getElementById("contractButton");
 const musicButton = document.getElementById("musicButton");
 const musicIcon = document.getElementById("musicIcon");
@@ -2705,7 +2741,12 @@ declineButton.addEventListener("click", declinePendingProperty);
 ventureButton.addEventListener("click", useVentureAction);
 quickUpgradeButton.addEventListener("click", quickUpgradeBestProperty);
 endButton.addEventListener("click", endTurn);
+advisorButton.addEventListener("click", executeCurrentAdvisorAction);
 contractButton.addEventListener("click", openCoopPanelShortcut);
+mapViewButton.addEventListener("click", toggleMapViewMode);
+cityJumpButton.addEventListener("click", locateCityFromSearch);
+cityJumpInput.addEventListener("input", handleCityJumpInput);
+cityJumpInput.addEventListener("keydown", handleCityJumpKeydown);
 musicButton.addEventListener("click", toggleBackgroundMusic);
 newGameButton.addEventListener("click", openSetupDialog);
 languageSelect.addEventListener("change", handleLanguageChange);
@@ -3246,7 +3287,23 @@ const dynamicPhraseTranslations = {
     "跌幅最大": "Top Loser",
     "最热门": "Most Active",
     "股价": "Stock Price",
+    "开局": "Start",
+    "观察": "Watch",
+    "已出局": "Out",
+    "拍卖中": "Auction",
+    "移动": "Move",
+    "买地": "Buy",
+    "拍卖": "Auction",
+    "降风险": "Lower Risk",
+    "建设": "Build",
+    "融资": "Finance",
+    "还债": "Repay",
+    "股票": "Stocks",
+    "收束": "Wrap Up",
+    "机会": "Chance",
+    "经营": "Manage",
     "合同收件箱": "Contract Inbox",
+    "员工办公室": "Staff Office",
     "请求 / 审批 / 状态": "Requests / Approval / Status",
     "合同模板分类": "Contract Templates",
     "类型 / 风险 / 城市": "Types / Risk / Cities",
@@ -3548,7 +3605,23 @@ const dynamicPhraseTranslations = {
     "跌幅最大": "Mayor Caída",
     "最热门": "Más Activa",
     "股价": "Precio",
+    "开局": "Inicio",
+    "观察": "Observar",
+    "已出局": "Fuera",
+    "拍卖中": "Subasta",
+    "移动": "Mover",
+    "买地": "Comprar",
+    "拍卖": "Subasta",
+    "降风险": "Bajar Riesgo",
+    "建设": "Construir",
+    "融资": "Financiar",
+    "还债": "Pagar Deuda",
+    "股票": "Acciones",
+    "收束": "Cerrar Turno",
+    "机会": "Oportunidad",
+    "经营": "Gestionar",
     "合同收件箱": "Bandeja de Contratos",
+    "员工办公室": "Oficina de Personal",
     "请求 / 审批 / 状态": "Solicitudes / Aprobación / Estado",
     "合同模板分类": "Plantillas de Contrato",
     "类型 / 风险 / 城市": "Tipos / Riesgo / Ciudades",
@@ -4037,6 +4110,7 @@ function createInitialGame(config = {}) {
     sidePanelMode: "deal",
     sidePanelCollapsed: false,
     mapZoom: 1,
+    mapView: "fit",
     worldPanelMode: "atlas",
     selectedPropertyIndex: null,
     config: { playerCount, mapSize: spaces.length, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, simpleMode: Boolean(config.simpleMode), ...rules },
@@ -4188,6 +4262,7 @@ function loadGame() {
     saved.sidePanelMode = SIDE_PANEL_MODES.includes(saved.sidePanelMode) ? saved.sidePanelMode : "deal";
     saved.sidePanelCollapsed = Boolean(saved.sidePanelCollapsed);
     saved.mapZoom = clamp(Number(saved.mapZoom) || 1, 0.75, 1.8);
+    saved.mapView = saved.mapView === "detail" ? "detail" : "fit";
     saved.worldPanelMode = ["atlas", "stocks", "business", "rules", "records"].includes(saved.worldPanelMode) ? saved.worldPanelMode : "atlas";
     saved.selectedPropertyIndex = Number.isInteger(saved.selectedPropertyIndex) ? saved.selectedPropertyIndex : null;
     saved.market = normalizeMarket(saved.market);
@@ -4220,6 +4295,7 @@ function render() {
   renderStaticLabels();
   renderPanelTabs();
   renderBoard();
+  renderBoardTools();
   renderPlayers();
   renderCards();
   renderAuction();
@@ -4272,11 +4348,14 @@ function refreshOpenLocalizedDialogs() {
 function renderBoard() {
   boardEl.querySelectorAll(".tile").forEach((tile) => tile.remove());
   const side = boardGridSize();
+  const mapView = state.mapView === "detail" ? "detail" : "fit";
+  document.body.dataset.mapView = mapView;
   boardEl.style.setProperty("--board-grid-size", String(side));
   boardEl.style.setProperty("--board-width", `${boardPixelSize()}px`);
   boardEl.style.gridTemplateColumns = `repeat(${side}, minmax(0, 1fr))`;
   boardEl.style.gridTemplateRows = `repeat(${side}, minmax(0, 1fr))`;
   boardEl.dataset.mapSize = String(spaces.length);
+  boardEl.dataset.mapView = mapView;
 
   spaces.forEach((space, index) => {
     const tile = document.createElement("article");
@@ -4343,6 +4422,89 @@ function renderBoard() {
     tile.append(main, footer, tokenStack);
     boardEl.appendChild(tile);
   });
+}
+
+function renderBoardTools() {
+  if (!mapViewButton || !cityJumpInput || !cityJumpList || !cityJumpButton || !cityJumpLabel) return;
+  const isDetail = state.mapView === "detail";
+  mapViewButton.textContent = isDetail ? uiText("mapFitMode") : uiText("mapDetailMode");
+  mapViewButton.setAttribute("aria-pressed", String(isDetail));
+  mapViewButton.title = isDetail ? uiText("mapFitMode") : uiText("mapDetailMode");
+  cityJumpLabel.textContent = uiText("citySearchLabel");
+  cityJumpInput.placeholder = uiText("citySearchPlaceholder");
+  if (document.activeElement !== cityJumpInput) cityJumpInput.value = state.citySearch || "";
+  cityJumpButton.textContent = uiText("cityJump");
+  cityJumpList.innerHTML = "";
+  spaces.forEach((space, index) => {
+    if (space.type !== "property") return;
+    const option = document.createElement("option");
+    option.value = spaceDisplayName(index);
+    option.label = `${regionDisplayName(space.region)} / ${countryDisplayName(space.country)}`;
+    cityJumpList.appendChild(option);
+  });
+}
+
+function toggleMapViewMode() {
+  state.mapView = state.mapView === "detail" ? "fit" : "detail";
+  state.status = state.mapView === "detail" ? uiText("mapDetailStatus") : uiText("mapFitStatus");
+  render();
+}
+
+function handleCityJumpInput(event) {
+  state.citySearch = String(event.target.value || "").slice(0, 40);
+}
+
+function handleCityJumpKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  locateCityFromSearch();
+}
+
+function locateCityFromSearch() {
+  const query = String(cityJumpInput?.value || state.citySearch || "").trim();
+  state.citySearch = query.slice(0, 40);
+  const index = citySearchMatchIndex(query);
+  if (!Number.isInteger(index)) {
+    state.status = uiText("cityNotFound");
+    state.sidePanelMode = "world";
+    state.worldPanelMode = "atlas";
+    state.sidePanelCollapsed = false;
+    render();
+    return;
+  }
+  state.pathHighlight = index;
+  state.sidePanelMode = "world";
+  state.worldPanelMode = "atlas";
+  state.sidePanelCollapsed = false;
+  state.status = uiText("cityLocated", spaceDisplayName(index));
+  render();
+  window.requestAnimationFrame(() => {
+    boardEl.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    openPropertyDialog(index);
+  });
+}
+
+function citySearchMatchIndex(query) {
+  const normalized = String(query || "").trim().toLowerCase();
+  if (!normalized) return null;
+  const properties = spaces
+    .map((space, index) => ({ space, index }))
+    .filter(({ space }) => space.type === "property");
+  const exact = properties.find(({ index }) => spaceDisplayName(index).toLowerCase() === normalized);
+  if (exact) return exact.index;
+  const loose = properties.find(({ space, index }) => {
+    const haystack = [
+      space.name,
+      spaceDisplayName(index),
+      space.country,
+      space.region,
+      space.landmark,
+      countryDisplayName(space.country),
+      regionDisplayName(space.region),
+    ].join(" ").toLowerCase();
+    return haystack.includes(normalized);
+  });
+  return loose ? loose.index : null;
 }
 
 function renderPlayers() {
@@ -5916,7 +6078,7 @@ function renderTrade() {
   const hint = document.createElement("p");
   hint.className = "panel-hint";
   hint.textContent = "这里保留融资、并购、债券和场外报价；合同入口固定在下方，也可以去右侧“合同”抽屉查看。";
-  tradePanel.append(title, hint, renderRecommendationCard(current), renderTurnSummaryCard(current), renderContractHubCard(current), renderDealDashboard(current));
+  tradePanel.append(title, hint, renderRecommendationCard(current), renderTurnSummaryCard(current), renderLatestQuarterlyReport(), renderContractHubCard(current), renderDealDashboard(current));
 
   const negotiationPanel = renderNegotiationPanel(current);
   if (negotiationPanel) tradePanel.appendChild(negotiationPanel);
@@ -6101,12 +6263,12 @@ function renderCoop() {
 
   const title = document.createElement("div");
   title.className = "section-title coop-section-title";
-  title.textContent = "合同中心";
+  title.textContent = "合同收件箱";
   const hint = document.createElement("p");
   hint.className = "panel-hint";
   hint.textContent = current?.isAI
-    ? "现在是对手行动，但你可以先查看合同；轮到你行动时才能签新合同。"
-    : "这里专门放合同：签约、分红、提前解约和违约条款都在这里处理。";
+    ? "现在是对手行动，但双方都能先查看合同内容；轮到你行动时才能发起新合同。"
+    : "所有合同请求、审批、分红、违约条款和合同档案都集中在这里。";
   coopPanel.append(title, hint, renderContractHubCard(player));
 
   const activeCount = coopContractsForPlayer(player).filter((contract) => contract.status === "active").length;
@@ -6174,10 +6336,10 @@ function renderStaffHub() {
 
   const title = document.createElement("div");
   title.className = "section-title staff-section-title";
-  title.textContent = "员工中心";
+  title.textContent = "员工办公室";
   const hint = document.createElement("p");
   hint.className = "panel-hint";
-  hint.textContent = "这里专门管理员工：签员工合同、分配任务、查看工资周期、解雇和员工辞职都会在这里处理。";
+  hint.textContent = "招聘前先签员工合同；入职后可以分配任务、查看工资周期，也可以处理解雇和辞职。";
   staffPanel.append(title, hint, renderStaffPanel(player));
 }
 
@@ -7377,6 +7539,8 @@ function renderControls() {
   const activeCoopCount = contractViewer
     ? coopContractsForPlayer(contractViewer).filter((contract) => contract.status === "active").length
     : 0;
+  const advisorPlan = nextActionPlan(current);
+  const advisorTag = translateDynamicText(advisorPlan.tag);
 
   const nextAction = state.phase === "waiting"
     ? "roll"
@@ -7386,6 +7550,13 @@ function renderControls() {
         ? "end"
         : "";
 
+  setMainActionButton(advisorButton, {
+    label: uiText("advisorButton", advisorTag),
+    disabled: !advisorPlan.enabled && !advisorPlan.action,
+    reason: advisorPlan.detail,
+    tone: advisorPlan.tone === "neutral" ? "move" : advisorPlan.tone,
+    next: false,
+  });
   setMainActionButton(contractButton, {
     label: signableCoopCount
       ? uiText("contractSignCount", signableCoopCount)
@@ -7442,6 +7613,17 @@ function renderControls() {
     next: nextAction === "end",
   });
   syncMainActionDrawers(nextAction);
+  updateMainActionDrawerVisibility({
+    showDeal: state.phase === "decision" || state.pendingPurchase !== null,
+    showTools: canQuickUpgrade || (canVenture && state.phase !== "waiting"),
+  });
+}
+
+function updateMainActionDrawerVisibility({ showDeal, showTools }) {
+  const dealDrawer = document.querySelector('.main-action-drawer[data-drawer-id="main:deal"]');
+  const toolsDrawer = document.querySelector('.main-action-drawer[data-drawer-id="main:tools"]');
+  if (dealDrawer) dealDrawer.hidden = !showDeal;
+  if (toolsDrawer) toolsDrawer.hidden = !showTools;
 }
 
 function openCoopPanelShortcut(target = "auto") {
@@ -12872,6 +13054,20 @@ function nextActionPlan(player) {
     tone: "neutral",
     shortGoal: "等待窗口",
   };
+}
+
+function executeCurrentAdvisorAction() {
+  const player = currentPlayer();
+  const plan = nextActionPlan(player);
+  if (plan.action && plan.enabled) {
+    executeAdvisorAction(plan.action);
+    return;
+  }
+  state.sidePanelMode = plan.tone === "gain" || plan.action === "stocks" ? "world" : "deal";
+  state.worldPanelMode = plan.action === "stocks" ? "stocks" : state.worldPanelMode;
+  state.sidePanelCollapsed = false;
+  state.status = plan.detail || (player ? recommendationFor(player) : uiText("finishActionFirst"));
+  render();
 }
 
 function executeAdvisorAction(action) {

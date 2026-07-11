@@ -122,6 +122,16 @@
 
             <div id="cityTicker" class="city-ticker" aria-live="polite"></div>
 
+            <div class="board-tools" aria-label="地图工具">
+              <button id="mapViewButton" class="map-view-button" type="button">全图模式</button>
+              <label class="city-jump-control" for="cityJumpInput">
+                <span id="cityJumpLabel">城市搜索</span>
+                <input id="cityJumpInput" list="cityJumpList" type="search" autocomplete="off" placeholder="搜索城市" />
+              </label>
+              <datalist id="cityJumpList"></datalist>
+              <button id="cityJumpButton" class="city-jump-button" type="button">定位</button>
+            </div>
+
             <div id="worldMap" class="world-map" aria-label="世界地图"></div>
 
             <div id="currentTileCard" class="current-tile" aria-live="polite"></div>
@@ -145,7 +155,11 @@
                     <svg class="button-icon" aria-hidden="true"><use href="#icon-dice"></use></svg>
                     掷骰
                   </button>
-                  <button id="contractButton" class="contract-shortcut-button" type="button">
+                  <button id="advisorButton" class="advisor-action-button" type="button">
+                    <svg class="button-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+                    建议
+                  </button>
+                  <button id="contractButton" class="contract-shortcut-button secondary-main-action" type="button">
                     <svg class="button-icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
                     签合同
                   </button>
@@ -408,6 +422,6 @@
       </form>
     </dialog>
 
-    <script src="app.js?v=fit-map-1"></script>
+    <script src="app.js?v=ui-flow-1"></script>
   </body>
 </html>
