@@ -161,16 +161,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "先自己玩",
     startTutorialGame: "开始教学局",
     atlasEyebrow: "世界图鉴",
-    mapFitMode: "全图模式",
-    mapDetailMode: "细节模式",
+    mapFitMode: "清晰模式",
+    mapDetailMode: "全图概览",
     citySearchLabel: "城市搜索",
     citySearchPlaceholder: "搜索城市",
     cityJump: "定位",
     advisorButton: (tag) => `建议：${tag}`,
     cityLocated: (name) => `已定位 ${name}，并打开城市卡。`,
     cityNotFound: "没有找到这座城市。",
-    mapDetailStatus: "已切到细节模式：地图会放大，适合看清城市。",
-    mapFitStatus: "已切到全图模式：整个地图会优先保持在屏幕内。",
+    mapDetailStatus: "已切到全图概览：可以看完整 100/200/300 地点分布。",
+    mapFitStatus: "已切到清晰模式：只显示当前位置附近路线，城市名字更容易看清。",
     round: (round) => `第 ${round} 轮`,
     readyStatus: (name) => `轮到 ${name}，准备掷骰。`,
     gameStarted: "新棋局开始。",
@@ -310,16 +310,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "Play Freely",
     startTutorialGame: "Start Tutorial",
     atlasEyebrow: "World Atlas",
-    mapFitMode: "Full Map",
-    mapDetailMode: "Detail Map",
+    mapFitMode: "Clear View",
+    mapDetailMode: "Full Overview",
     citySearchLabel: "City Search",
     citySearchPlaceholder: "Search city",
     cityJump: "Locate",
     advisorButton: (tag) => `Advice: ${tag}`,
     cityLocated: (name) => `Located ${name} and opened its city card.`,
     cityNotFound: "City not found.",
-    mapDetailStatus: "Detail mode is on: the board is larger for reading cities.",
-    mapFitStatus: "Full map mode is on: the board stays inside the screen first.",
+    mapDetailStatus: "Full overview is on: the whole 100/200/300-location map is visible.",
+    mapFitStatus: "Clear view is on: nearby route spaces are larger and easier to read.",
     round: (round) => `Round ${round}`,
     readyStatus: (name) => `${name}'s turn. Roll the dice.`,
     gameStarted: "New game started.",
@@ -459,16 +459,16 @@ const languageDefinitions = {
     continueWithoutTutorial: "Jugar Libre",
     startTutorialGame: "Iniciar Tutorial",
     atlasEyebrow: "Atlas Mundial",
-    mapFitMode: "Mapa Completo",
-    mapDetailMode: "Mapa Detalle",
+    mapFitMode: "Vista Clara",
+    mapDetailMode: "Vista General",
     citySearchLabel: "Buscar Ciudad",
     citySearchPlaceholder: "Buscar ciudad",
     cityJump: "Ubicar",
     advisorButton: (tag) => `Consejo: ${tag}`,
     cityLocated: (name) => `${name} ubicado y carta abierta.`,
     cityNotFound: "Ciudad no encontrada.",
-    mapDetailStatus: "Modo detalle activado: el tablero se amplía para leer ciudades.",
-    mapFitStatus: "Modo mapa completo activado: el tablero cabe primero en la pantalla.",
+    mapDetailStatus: "Vista general activada: se ve todo el mapa de 100/200/300 lugares.",
+    mapFitStatus: "Vista clara activada: la ruta cercana es más grande y legible.",
     round: (round) => `Ronda ${round}`,
     readyStatus: (name) => `Turno de ${name}. Tira los dados.`,
     gameStarted: "Nueva partida iniciada.",
@@ -1624,6 +1624,29 @@ function boardPixelSize() {
   const side = boardGridSize();
   const cellSize = spaces.length >= BASE_MAP_SIZE * 3 ? 30 : spaces.length >= BASE_MAP_SIZE * 2 ? 34 : 47;
   return Math.max(1220, Math.round(side * cellSize));
+}
+
+function activeBoardView() {
+  return state?.mapView === "overview" ? "overview" : "focus";
+}
+
+function boardDisplayGridSize(view = activeBoardView()) {
+  return view === "focus" ? 14 : boardGridSize();
+}
+
+function boardDisplayPixelSize(view = activeBoardView()) {
+  return view === "focus" ? 980 : boardPixelSize();
+}
+
+function boardDisplayIndexes(view = activeBoardView()) {
+  if (view !== "focus") {
+    return spaces.map((_, index) => index);
+  }
+  const side = boardDisplayGridSize(view);
+  const capacity = Math.min(spaces.length, side * 4 - 4);
+  const center = clamp(Number.isInteger(state.focusIndex) ? state.focusIndex : currentPlayer()?.position || 0, 0, spaces.length - 1);
+  const before = Math.floor(capacity / 2);
+  return Array.from({ length: capacity }, (_, order) => (center - before + order + spaces.length) % spaces.length);
 }
 
 function totalPropertyCount() {
@@ -4110,7 +4133,8 @@ function createInitialGame(config = {}) {
     sidePanelMode: "deal",
     sidePanelCollapsed: false,
     mapZoom: 1,
-    mapView: "fit",
+    mapView: "focus",
+    focusIndex: null,
     worldPanelMode: "atlas",
     selectedPropertyIndex: null,
     config: { playerCount, mapSize: spaces.length, playerName: humanName, playerColor: humanColor, difficulty, character: humanCharacter, theme, language, tutorialMode, simpleMode: Boolean(config.simpleMode), ...rules },
@@ -4262,7 +4286,8 @@ function loadGame() {
     saved.sidePanelMode = SIDE_PANEL_MODES.includes(saved.sidePanelMode) ? saved.sidePanelMode : "deal";
     saved.sidePanelCollapsed = Boolean(saved.sidePanelCollapsed);
     saved.mapZoom = clamp(Number(saved.mapZoom) || 1, 0.75, 1.8);
-    saved.mapView = saved.mapView === "detail" ? "detail" : "fit";
+    saved.mapView = saved.mapView === "overview" ? "overview" : "focus";
+    saved.focusIndex = Number.isInteger(saved.focusIndex) ? clamp(saved.focusIndex, 0, spaces.length - 1) : null;
     saved.worldPanelMode = ["atlas", "stocks", "business", "rules", "records"].includes(saved.worldPanelMode) ? saved.worldPanelMode : "atlas";
     saved.selectedPropertyIndex = Number.isInteger(saved.selectedPropertyIndex) ? saved.selectedPropertyIndex : null;
     saved.market = normalizeMarket(saved.market);
@@ -4347,22 +4372,25 @@ function refreshOpenLocalizedDialogs() {
 
 function renderBoard() {
   boardEl.querySelectorAll(".tile").forEach((tile) => tile.remove());
-  const side = boardGridSize();
-  const mapView = state.mapView === "detail" ? "detail" : "fit";
+  const mapView = activeBoardView();
+  const side = boardDisplayGridSize(mapView);
+  const displayIndexes = boardDisplayIndexes(mapView);
   document.body.dataset.mapView = mapView;
   boardEl.style.setProperty("--board-grid-size", String(side));
-  boardEl.style.setProperty("--board-width", `${boardPixelSize()}px`);
+  boardEl.style.setProperty("--board-width", `${boardDisplayPixelSize(mapView)}px`);
   boardEl.style.gridTemplateColumns = `repeat(${side}, minmax(0, 1fr))`;
   boardEl.style.gridTemplateRows = `repeat(${side}, minmax(0, 1fr))`;
   boardEl.dataset.mapSize = String(spaces.length);
   boardEl.dataset.mapView = mapView;
 
-  spaces.forEach((space, index) => {
+  displayIndexes.forEach((index, routeOrder) => {
+    const space = spaces[index];
     const tile = document.createElement("article");
-    const position = boardGridPosition(index);
+    const position = mapView === "focus" ? boardRoutePosition(routeOrder, side) : boardGridPosition(index);
     const owner = playerById(state.owners[index]);
     const tokens = state.players.filter((player) => !player.bankrupt && player.position === index);
     const classes = ["tile"];
+    if (mapView === "focus") classes.push("is-route-focus");
     if (owner) classes.push("is-owned");
     if (owner && space.kind === "street" && ownsFullStreetGroup(owner.id, space.group)) classes.push("set-complete");
     if (canBuildOn(index)) classes.push("is-buildable");
@@ -4377,6 +4405,7 @@ function renderBoard() {
     tile.className = classes.join(" ");
     tile.dataset.type = space.type;
     tile.dataset.index = String(index);
+    tile.dataset.routeOrder = String(routeOrder);
     tile.dataset.level = String(state.levels[index] || 0);
     tile.style.gridColumn = String(position.col);
     tile.style.gridRow = String(position.row);
@@ -4426,10 +4455,10 @@ function renderBoard() {
 
 function renderBoardTools() {
   if (!mapViewButton || !cityJumpInput || !cityJumpList || !cityJumpButton || !cityJumpLabel) return;
-  const isDetail = state.mapView === "detail";
-  mapViewButton.textContent = isDetail ? uiText("mapFitMode") : uiText("mapDetailMode");
-  mapViewButton.setAttribute("aria-pressed", String(isDetail));
-  mapViewButton.title = isDetail ? uiText("mapFitMode") : uiText("mapDetailMode");
+  const isOverview = activeBoardView() === "overview";
+  mapViewButton.textContent = isOverview ? uiText("mapFitMode") : uiText("mapDetailMode");
+  mapViewButton.setAttribute("aria-pressed", String(isOverview));
+  mapViewButton.title = isOverview ? uiText("mapFitMode") : uiText("mapDetailMode");
   cityJumpLabel.textContent = uiText("citySearchLabel");
   cityJumpInput.placeholder = uiText("citySearchPlaceholder");
   if (document.activeElement !== cityJumpInput) cityJumpInput.value = state.citySearch || "";
@@ -4445,8 +4474,8 @@ function renderBoardTools() {
 }
 
 function toggleMapViewMode() {
-  state.mapView = state.mapView === "detail" ? "fit" : "detail";
-  state.status = state.mapView === "detail" ? uiText("mapDetailStatus") : uiText("mapFitStatus");
+  state.mapView = activeBoardView() === "overview" ? "focus" : "overview";
+  state.status = activeBoardView() === "overview" ? uiText("mapDetailStatus") : uiText("mapFitStatus");
   render();
 }
 
@@ -4473,6 +4502,8 @@ function locateCityFromSearch() {
     return;
   }
   state.pathHighlight = index;
+  state.focusIndex = index;
+  state.mapView = "focus";
   state.sidePanelMode = "world";
   state.worldPanelMode = "atlas";
   state.sidePanelCollapsed = false;
@@ -14284,6 +14315,10 @@ function netWorth(player) {
 
 function boardGridPosition(index) {
   const side = boardGridSize();
+  return boardRoutePosition(index, side);
+}
+
+function boardRoutePosition(index, side) {
   const rightStart = side;
   const bottomStart = side + (side - 1);
   const leftStart = bottomStart + (side - 1);
