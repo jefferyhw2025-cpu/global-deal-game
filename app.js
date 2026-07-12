@@ -161,7 +161,7 @@ const languageDefinitions = {
     continueWithoutTutorial: "先自己玩",
     startTutorialGame: "开始教学局",
     atlasEyebrow: "世界图鉴",
-    mapFitMode: "清晰模式",
+    mapFitMode: "平衡模式",
     mapDetailMode: "全图概览",
     citySearchLabel: "城市搜索",
     citySearchPlaceholder: "搜索城市",
@@ -170,7 +170,7 @@ const languageDefinitions = {
     cityLocated: (name) => `已定位 ${name}，并打开城市卡。`,
     cityNotFound: "没有找到这座城市。",
     mapDetailStatus: "已切到全图概览：可以看完整 100/200/300 地点分布。",
-    mapFitStatus: "已切到清晰模式：只显示当前位置附近路线，城市名字更容易看清。",
+    mapFitStatus: "已切到平衡模式：显示当前位置附近约 100 个地点，既能看清也不会太少。",
     round: (round) => `第 ${round} 轮`,
     readyStatus: (name) => `轮到 ${name}，准备掷骰。`,
     gameStarted: "新棋局开始。",
@@ -310,7 +310,7 @@ const languageDefinitions = {
     continueWithoutTutorial: "Play Freely",
     startTutorialGame: "Start Tutorial",
     atlasEyebrow: "World Atlas",
-    mapFitMode: "Clear View",
+    mapFitMode: "Balanced View",
     mapDetailMode: "Full Overview",
     citySearchLabel: "City Search",
     citySearchPlaceholder: "Search city",
@@ -319,7 +319,7 @@ const languageDefinitions = {
     cityLocated: (name) => `Located ${name} and opened its city card.`,
     cityNotFound: "City not found.",
     mapDetailStatus: "Full overview is on: the whole 100/200/300-location map is visible.",
-    mapFitStatus: "Clear view is on: nearby route spaces are larger and easier to read.",
+    mapFitStatus: "Balanced view is on: about 100 nearby locations are shown clearly.",
     round: (round) => `Round ${round}`,
     readyStatus: (name) => `${name}'s turn. Roll the dice.`,
     gameStarted: "New game started.",
@@ -459,7 +459,7 @@ const languageDefinitions = {
     continueWithoutTutorial: "Jugar Libre",
     startTutorialGame: "Iniciar Tutorial",
     atlasEyebrow: "Atlas Mundial",
-    mapFitMode: "Vista Clara",
+    mapFitMode: "Vista Equilibrada",
     mapDetailMode: "Vista General",
     citySearchLabel: "Buscar Ciudad",
     citySearchPlaceholder: "Buscar ciudad",
@@ -468,7 +468,7 @@ const languageDefinitions = {
     cityLocated: (name) => `${name} ubicado y carta abierta.`,
     cityNotFound: "Ciudad no encontrada.",
     mapDetailStatus: "Vista general activada: se ve todo el mapa de 100/200/300 lugares.",
-    mapFitStatus: "Vista clara activada: la ruta cercana es más grande y legible.",
+    mapFitStatus: "Vista equilibrada activada: muestra cerca de 100 lugares legibles.",
     round: (round) => `Ronda ${round}`,
     readyStatus: (name) => `Turno de ${name}. Tira los dados.`,
     gameStarted: "Nueva partida iniciada.",
@@ -1627,19 +1627,19 @@ function boardPixelSize() {
 }
 
 function activeBoardView() {
-  return state?.mapView === "overview" ? "overview" : "focus";
+  return state?.mapView === "overview" ? "overview" : "balanced";
 }
 
 function boardDisplayGridSize(view = activeBoardView()) {
-  return view === "focus" ? 14 : boardGridSize();
+  return view === "balanced" ? 26 : boardGridSize();
 }
 
 function boardDisplayPixelSize(view = activeBoardView()) {
-  return view === "focus" ? 980 : boardPixelSize();
+  return view === "balanced" ? 1220 : boardPixelSize();
 }
 
 function boardDisplayIndexes(view = activeBoardView()) {
-  if (view !== "focus") {
+  if (view !== "balanced") {
     return spaces.map((_, index) => index);
   }
   const side = boardDisplayGridSize(view);
@@ -4133,7 +4133,7 @@ function createInitialGame(config = {}) {
     sidePanelMode: "deal",
     sidePanelCollapsed: false,
     mapZoom: 1,
-    mapView: "focus",
+    mapView: "balanced",
     focusIndex: null,
     worldPanelMode: "atlas",
     selectedPropertyIndex: null,
@@ -4286,7 +4286,7 @@ function loadGame() {
     saved.sidePanelMode = SIDE_PANEL_MODES.includes(saved.sidePanelMode) ? saved.sidePanelMode : "deal";
     saved.sidePanelCollapsed = Boolean(saved.sidePanelCollapsed);
     saved.mapZoom = clamp(Number(saved.mapZoom) || 1, 0.75, 1.8);
-    saved.mapView = saved.mapView === "overview" ? "overview" : "focus";
+    saved.mapView = saved.mapView === "overview" ? "overview" : "balanced";
     saved.focusIndex = Number.isInteger(saved.focusIndex) ? clamp(saved.focusIndex, 0, spaces.length - 1) : null;
     saved.worldPanelMode = ["atlas", "stocks", "business", "rules", "records"].includes(saved.worldPanelMode) ? saved.worldPanelMode : "atlas";
     saved.selectedPropertyIndex = Number.isInteger(saved.selectedPropertyIndex) ? saved.selectedPropertyIndex : null;
@@ -4386,11 +4386,11 @@ function renderBoard() {
   displayIndexes.forEach((index, routeOrder) => {
     const space = spaces[index];
     const tile = document.createElement("article");
-    const position = mapView === "focus" ? boardRoutePosition(routeOrder, side) : boardGridPosition(index);
+    const position = mapView === "balanced" ? boardRoutePosition(routeOrder, side) : boardGridPosition(index);
     const owner = playerById(state.owners[index]);
     const tokens = state.players.filter((player) => !player.bankrupt && player.position === index);
     const classes = ["tile"];
-    if (mapView === "focus") classes.push("is-route-focus");
+    if (mapView === "balanced") classes.push("is-route-focus");
     if (owner) classes.push("is-owned");
     if (owner && space.kind === "street" && ownsFullStreetGroup(owner.id, space.group)) classes.push("set-complete");
     if (canBuildOn(index)) classes.push("is-buildable");
@@ -4474,7 +4474,7 @@ function renderBoardTools() {
 }
 
 function toggleMapViewMode() {
-  state.mapView = activeBoardView() === "overview" ? "focus" : "overview";
+  state.mapView = activeBoardView() === "overview" ? "balanced" : "overview";
   state.status = activeBoardView() === "overview" ? uiText("mapDetailStatus") : uiText("mapFitStatus");
   render();
 }
@@ -4503,7 +4503,7 @@ function locateCityFromSearch() {
   }
   state.pathHighlight = index;
   state.focusIndex = index;
-  state.mapView = "focus";
+  state.mapView = "balanced";
   state.sidePanelMode = "world";
   state.worldPanelMode = "atlas";
   state.sidePanelCollapsed = false;
