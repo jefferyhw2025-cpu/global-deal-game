@@ -163,6 +163,10 @@ const languageDefinitions = {
     atlasEyebrow: "世界图鉴",
     mapFitMode: "经典棋盘",
     mapDetailMode: "全图概览",
+    mapSizeBadge: (visible, total) => `显示 ${visible} / 总 ${total} 地点`,
+    mapSizeRule: "2-4 人：100 地点；5-8 人：200 地点；9-12 人：300 地点。",
+    setupMapPreview: (players, total) => `当前选择 ${players} 人，本局地图有 ${total} 个地点。`,
+    playerCountOption: (players, total) => `${players} 人 / ${total} 地点`,
     citySearchLabel: "城市搜索",
     citySearchPlaceholder: "搜索城市",
     cityJump: "定位",
@@ -237,7 +241,7 @@ const languageDefinitions = {
     musicAriaOff: "开启背景音乐",
     musicAriaOn: "关闭背景音乐",
     currentTile: (name) => `${name} 当前地块`,
-    currentLocation: (name, zoom) => `当前位置：${name} / 地图 ${zoom}%`,
+    currentLocation: (name, zoom, visible, total) => `当前位置：${name} / 显示 ${visible}/${total} 地点 / 缩放 ${zoom}%`,
     propertyCard: (number) => `地产卡 ${number}`,
     owner: "持有者",
     forSale: "待售",
@@ -312,6 +316,10 @@ const languageDefinitions = {
     atlasEyebrow: "World Atlas",
     mapFitMode: "Classic Board",
     mapDetailMode: "Full Overview",
+    mapSizeBadge: (visible, total) => `Showing ${visible} / ${total} locations`,
+    mapSizeRule: "2-4 players: 100 locations; 5-8 players: 200; 9-12 players: 300.",
+    setupMapPreview: (players, total) => `${players} players selected. This game uses ${total} locations.`,
+    playerCountOption: (players, total) => `${players} Players / ${total} locations`,
     citySearchLabel: "City Search",
     citySearchPlaceholder: "Search city",
     cityJump: "Locate",
@@ -386,7 +394,7 @@ const languageDefinitions = {
     musicAriaOff: "Turn on background music",
     musicAriaOn: "Turn off background music",
     currentTile: (name) => `${name}'s current tile`,
-    currentLocation: (name, zoom) => `Current: ${name} / Map ${zoom}%`,
+    currentLocation: (name, zoom, visible, total) => `Current: ${name} / Showing ${visible}/${total} locations / Zoom ${zoom}%`,
     propertyCard: (number) => `Property Card ${number}`,
     owner: "Owner",
     forSale: "For Sale",
@@ -461,6 +469,10 @@ const languageDefinitions = {
     atlasEyebrow: "Atlas Mundial",
     mapFitMode: "Tablero Clásico",
     mapDetailMode: "Vista General",
+    mapSizeBadge: (visible, total) => `Mostrando ${visible} / ${total} lugares`,
+    mapSizeRule: "2-4 jugadores: 100 lugares; 5-8 jugadores: 200; 9-12 jugadores: 300.",
+    setupMapPreview: (players, total) => `${players} jugadores seleccionados. Esta partida usa ${total} lugares.`,
+    playerCountOption: (players, total) => `${players} Jugadores / ${total} lugares`,
     citySearchLabel: "Buscar Ciudad",
     citySearchPlaceholder: "Buscar ciudad",
     cityJump: "Ubicar",
@@ -535,7 +547,7 @@ const languageDefinitions = {
     musicAriaOff: "Activar música",
     musicAriaOn: "Desactivar música",
     currentTile: (name) => `Casilla actual de ${name}`,
-    currentLocation: (name, zoom) => `Actual: ${name} / Mapa ${zoom}%`,
+    currentLocation: (name, zoom, visible, total) => `Actual: ${name} / Mostrando ${visible}/${total} lugares / Zoom ${zoom}%`,
     propertyCard: (number) => `Carta ${number}`,
     owner: "Dueño",
     forSale: "En Venta",
@@ -1649,6 +1661,12 @@ function boardDisplayIndexes(view = activeBoardView()) {
   return Array.from({ length: capacity }, (_, order) => (center - before + order + spaces.length) % spaces.length);
 }
 
+function visibleBoardLocationCount(view = activeBoardView()) {
+  if (view !== "balanced") return spaces.length;
+  const side = boardDisplayGridSize(view);
+  return Math.min(spaces.length, side * 4 - 4);
+}
+
 function totalPropertyCount() {
   return spaces.filter((space) => space.type === "property").length;
 }
@@ -2661,6 +2679,7 @@ const eventLog = document.getElementById("eventLog");
 const cityTicker = document.getElementById("cityTicker");
 const worldMap = document.getElementById("worldMap");
 const mapViewButton = document.getElementById("mapViewButton");
+const mapSizeBadge = document.getElementById("mapSizeBadge");
 const cityJumpLabel = document.getElementById("cityJumpLabel");
 const cityJumpInput = document.getElementById("cityJumpInput");
 const cityJumpList = document.getElementById("cityJumpList");
@@ -2708,6 +2727,7 @@ const playerColorLabel = document.getElementById("playerColorLabel");
 const playerColorInput = document.getElementById("playerColorInput");
 const playerCountLabel = document.getElementById("playerCountLabel");
 const playerCountInput = document.getElementById("playerCountInput");
+const mapSizeHint = document.getElementById("mapSizeHint");
 const difficultyLabel = document.getElementById("difficultyLabel");
 const difficultyInput = document.getElementById("difficultyInput");
 const difficultyHint = document.getElementById("difficultyHint");
@@ -2779,6 +2799,7 @@ setupLanguageInput.addEventListener("change", () => {
   syncLanguageUrl(language);
   renderStaticLabels();
 });
+playerCountInput.addEventListener("change", () => updateMapSizeHint(normalizeLanguage(setupLanguageInput.value)));
 difficultyInput.addEventListener("change", updateDifficultyHint);
 cancelSetupButton.addEventListener("click", () => setupDialog.close());
 startGameButton.addEventListener("click", startConfiguredGame);
@@ -2975,12 +2996,13 @@ function renderStaticLabels() {
   themeLabel.textContent = uiTextForLanguage(language, "theme");
   rulesPresetLabel.textContent = uiTextForLanguage(language, "rulesPreset");
   startCashLabel.textContent = uiTextForLanguage(language, "startCash");
-  updateSelectLabels(playerCountInput, setupSelectLabels[language].playerCount);
+  updatePlayerCountLabels(language);
   updateSelectLabels(difficultyInput, setupSelectLabels[language].difficulty);
   updateSelectLabels(characterInput, setupSelectLabels[language].character);
   updateSelectLabels(themeInput, setupSelectLabels[language].theme);
   updateSelectLabels(rulesPresetInput, setupSelectLabels[language].rulesPreset);
   updateDifficultyHint();
+  updateMapSizeHint(language);
   cancelSetupButton.textContent = uiTextForLanguage(language, "cancel");
   startGameButton.textContent = uiTextForLanguage(language, "start");
   closePropertyDialogButton.textContent = uiTextForLanguage(language, "close");
@@ -3026,6 +3048,20 @@ function updateSelectLabels(select, labels) {
   Array.from(select.options).forEach((option) => {
     option.textContent = labels[option.value] || option.textContent;
   });
+}
+
+function updatePlayerCountLabels(language = currentLanguage()) {
+  Array.from(playerCountInput.options).forEach((option) => {
+    const players = normalizePlayerCount(option.value);
+    option.textContent = uiTextForLanguage(language, "playerCountOption", players, mapSizeForPlayerCount(players));
+  });
+}
+
+function updateMapSizeHint(language = normalizeLanguage(setupLanguageInput?.value || currentLanguage())) {
+  if (!mapSizeHint || !playerCountInput) return;
+  const players = normalizePlayerCount(playerCountInput.value);
+  const total = mapSizeForPlayerCount(players);
+  mapSizeHint.textContent = `${uiTextForLanguage(language, "setupMapPreview", players, total)} ${uiTextForLanguage(language, "mapSizeRule")}`;
 }
 
 const dynamicPhraseTranslations = {
@@ -4454,11 +4490,14 @@ function renderBoard() {
 }
 
 function renderBoardTools() {
-  if (!mapViewButton || !cityJumpInput || !cityJumpList || !cityJumpButton || !cityJumpLabel) return;
+  if (!mapViewButton || !mapSizeBadge || !cityJumpInput || !cityJumpList || !cityJumpButton || !cityJumpLabel) return;
   const isOverview = activeBoardView() === "overview";
+  const visibleCount = visibleBoardLocationCount(activeBoardView());
   mapViewButton.textContent = isOverview ? uiText("mapFitMode") : uiText("mapDetailMode");
   mapViewButton.setAttribute("aria-pressed", String(isOverview));
   mapViewButton.title = isOverview ? uiText("mapFitMode") : uiText("mapDetailMode");
+  mapSizeBadge.textContent = uiText("mapSizeBadge", visibleCount, spaces.length);
+  mapSizeBadge.title = uiText("mapSizeRule");
   cityJumpLabel.textContent = uiText("citySearchLabel");
   cityJumpInput.placeholder = uiText("citySearchPlaceholder");
   if (document.activeElement !== cityJumpInput) cityJumpInput.value = state.citySearch || "";
@@ -7378,7 +7417,13 @@ function renderWorldMap() {
 
   const caption = document.createElement("div");
   caption.className = "map-caption";
-  caption.textContent = uiText("currentLocation", spaceDisplayName(current?.position || 0), Math.round((state.mapZoom || 1) * 100));
+  caption.textContent = uiText(
+    "currentLocation",
+    spaceDisplayName(current?.position || 0),
+    Math.round((state.mapZoom || 1) * 100),
+    visibleBoardLocationCount(activeBoardView()),
+    spaces.length,
+  );
 	  worldMap.append(controls, globe, caption);
 	}
 
@@ -15268,6 +15313,7 @@ function openSetupDialog() {
   setupLanguageInput.value = currentLanguage();
   playerColorInput.value = state.config?.playerColor || state.players[0]?.color || playerTemplates[0].color;
   playerCountInput.value = String(state.config?.playerCount || state.players.length || 4);
+  updateMapSizeHint(currentLanguage());
   difficultyInput.value = state.config?.difficulty || "normal";
   updateDifficultyHint();
   characterInput.value = state.config?.character || state.players[0]?.character || "banker";

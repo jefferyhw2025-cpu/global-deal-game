@@ -855,7 +855,7 @@ h2 {
 .board-tools {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(140px, 1fr) auto;
+  grid-template-columns: auto auto minmax(140px, 1fr) auto;
   gap: 8px;
   align-items: end;
   border: 1px solid rgba(18, 138, 156, 0.16);
@@ -866,6 +866,26 @@ h2 {
   box-shadow:
     0 10px 22px rgba(22, 32, 51, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.map-size-badge {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(216, 153, 33, 0.32);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 236, 0.96), rgba(255, 255, 255, 0.84));
+  color: #7a5520;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1.1;
+  padding: 0 10px;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 5px 12px rgba(216, 153, 33, 0.12);
 }
 
 .map-view-button,
@@ -6405,6 +6425,13 @@ html[lang="es"] .action-bar button.is-next-action::after {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     padding: 6px;
+  }
+
+  .map-size-badge {
+    grid-column: 1 / -1;
+    order: -2;
+    min-height: 30px;
+    font-size: 0.58rem;
   }
 
   .city-jump-control {

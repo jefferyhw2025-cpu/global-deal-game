@@ -124,6 +124,7 @@
 
             <div class="board-tools" aria-label="地图工具">
               <button id="mapViewButton" class="map-view-button" type="button">全图模式</button>
+              <div id="mapSizeBadge" class="map-size-badge" aria-live="polite">显示 100 / 总 100 地点</div>
               <label class="city-jump-control" for="cityJumpInput">
                 <span id="cityJumpLabel">城市搜索</span>
                 <input id="cityJumpInput" list="cityJumpList" type="search" autocomplete="off" placeholder="搜索城市" />
@@ -365,6 +366,7 @@
             <option value="11">11 人</option>
             <option value="12">12 人</option>
           </select>
+          <small id="mapSizeHint" class="setup-hint map-size-hint">2-4 人：100 地点；5-8 人：200 地点；9-12 人：300 地点。</small>
         </label>
 
         <label>
@@ -422,6 +424,6 @@
       </form>
     </dialog>
 
-    <script src="app.js?v=classic-board-1"></script>
+    <script src="app.js?v=map-count-1"></script>
   </body>
 </html>
