@@ -9522,13 +9522,42 @@ function runLanguageQualityAudit() {
 }
 
 function runVisualQualityAudit() {
+  const visibleRectFor = (node) => {
+    const base = node.getBoundingClientRect();
+    let left = base.left;
+    let top = base.top;
+    let right = base.right;
+    let bottom = base.bottom;
+    let parent = node.parentElement;
+    while (parent && parent !== document.body) {
+      const style = getComputedStyle(parent);
+      const clipped = [style.overflow, style.overflowX, style.overflowY]
+        .some((value) => ["auto", "scroll", "hidden", "clip"].includes(value));
+      if (clipped) {
+        const parentRect = parent.getBoundingClientRect();
+        left = Math.max(left, parentRect.left);
+        top = Math.max(top, parentRect.top);
+        right = Math.min(right, parentRect.right);
+        bottom = Math.min(bottom, parentRect.bottom);
+      }
+      parent = parent.parentElement;
+    }
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top),
+    };
+  };
   const overflow = Array.from(document.querySelectorAll("button, summary, .deal-card, .current-tile, .game-stat, .side-category-drawer, .main-action-drawer"))
     .filter((node) => !node.closest(".board"))
     .filter((node) => node.scrollWidth > node.clientWidth + 2 || node.scrollHeight > node.clientHeight + 2)
     .slice(0, 12);
   const rects = Array.from(document.querySelectorAll(".game-shell, .side-panel, .board-shell, .current-tile, .main-actions"))
     .filter((node) => !node.hidden)
-    .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+    .map((node) => ({ node, rect: visibleRectFor(node) }))
     .filter(({ rect }) => rect.width > 0 && rect.height > 0);
   let overlapCount = 0;
   for (let i = 0; i < rects.length; i += 1) {
