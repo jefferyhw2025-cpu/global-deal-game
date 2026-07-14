@@ -79,7 +79,7 @@ const DEFAULT_DRAWER_OPEN = {
   "panel:auction": true,
   "panel:shop": true,
   "panel:save": false,
-  "panel:progress": false,
+  "panel:progress": true,
   "panel:world": true,
   "panel:quality": true,
   "panel:share": false,
@@ -1281,14 +1281,173 @@ const rulesPresetDefinitions = {
   hard: { label: "困难税费", startCash: 1450, priceFactor: 1.08, buildFactor: 1.06, taxFactor: 1.35, turnLimit: 0 },
 };
 
-const taskDefinitions = [
-  { id: "buy3", title: "置业新星", detail: "拥有 3 块地产", reward: 120 },
-  { id: "firstSet", title: "套装收藏家", detail: "集齐任意洲 3 座城市", reward: 180 },
-  { id: "worldTour", title: "环球旅行家", detail: "到达 5 个不同地区", reward: 180 },
-  { id: "upgrade2", title: "城市建设者", detail: "累计升级 2 次", reward: 130 },
-  { id: "use3Cards", title: "卡片玩家", detail: "使用 3 张手牌", reward: 100 },
-  { id: "auctionWin", title: "拍卖赢家", detail: "拍下一块地产", reward: 140 },
-];
+function createHundredChallengeTasks() {
+  const groups = [
+    {
+      category: "地产扩张",
+      tasks: [
+        ["buy1", "第一笔买卖", "拥有 1 块地产", "properties", 1, 80],
+        ["buy3", "置业新星", "拥有 3 块地产", "properties", 3, 120],
+        ["buy5", "城市买手", "拥有 5 块地产", "properties", 5, 150],
+        ["buy8", "区域经营者", "拥有 8 块地产", "properties", 8, 190],
+        ["buy12", "地产组合", "拥有 12 块地产", "properties", 12, 240],
+        ["buy16", "城市集团", "拥有 16 块地产", "properties", 16, 300],
+        ["firstSet", "套装收藏家", "集齐任意洲 3 座城市", "setCount", 1, 180],
+        ["set2", "洲际控股", "控制 2 个洲套装", "setCount", 2, 300],
+        ["cityCollector20", "全球买家", "拥有 20 块地产", "properties", 20, 380],
+        ["continentMaster3", "洲际霸主", "控制 3 个洲套装", "setCount", 3, 460],
+      ],
+    },
+    {
+      category: "城市建设",
+      tasks: [
+        ["upgrade1", "开工建设", "累计升级 1 次", "upgrades", 1, 90],
+        ["upgrade2", "城市建设者", "累计升级 2 次", "upgrades", 2, 130],
+        ["upgrade5", "建设承包商", "累计升级 5 次", "upgrades", 5, 210],
+        ["upgrade10", "城市更新计划", "累计升级 10 次", "upgrades", 10, 330],
+        ["maxLevel1", "第一座总部", "拥有 1 座满级城市", "maxLevelCities", 1, 260],
+        ["maxLevel3", "总部矩阵", "拥有 3 座满级城市", "maxLevelCities", 3, 480],
+        ["company1", "成立第一家公司", "建成 1 个城市公司设施", "companies", 1, 150],
+        ["company5", "城市运营商", "建成 5 个城市公司设施", "companies", 5, 280],
+        ["eco2", "绿色改造", "完成 2 座城市环保改造", "ecoCities", 2, 220],
+        ["company10", "城市服务集团", "建成 10 个城市公司设施", "companies", 10, 420],
+      ],
+    },
+    {
+      category: "全球地图",
+      tasks: [
+        ["region2", "跨区起步", "到达 2 个不同地区", "regions", 2, 100],
+        ["region3", "洲际路线", "到达 3 个不同地区", "regions", 3, 140],
+        ["worldTour", "环球旅行家", "到达 5 个不同地区", "regions", 5, 180],
+        ["airport1", "第一条航线", "拥有 1 座机场城市", "airportCities", 1, 160],
+        ["airport3", "航空网络", "拥有 3 座机场城市", "airportCities", 3, 300],
+        ["port2", "港口贸易", "拥有 2 座港口城市", "portCities", 2, 220],
+        ["energy2", "能源布局", "拥有 2 座能源城市", "energyCities", 2, 220],
+        ["adjacent3", "连线奖励", "拥有 3 组相邻城市", "adjacentOwned", 3, 260],
+        ["map100", "百城棋局", "进入至少 100 地点地图", "totalLocations", 100, 40],
+        ["map300", "三百城大战", "进入 300 地点大地图", "totalLocations", 300, 120],
+      ],
+    },
+    {
+      category: "股票市场",
+      tasks: [
+        ["stockInvestor", "第一次买股", "持有 1 股城市股票", "stocks", 1, 90],
+        ["stock3", "小股东", "持有 3 股城市股票", "stocks", 3, 120],
+        ["stock6", "市场玩家", "持有 6 股城市股票", "stocks", 6, 180],
+        ["stock10", "股票组合", "持有 10 股城市股票", "stocks", 10, 250],
+        ["stock20", "股市巨头", "持有 20 股城市股票", "stocks", 20, 420],
+        ["portfolio300", "投资组合 ¥300", "股票市值达到 ¥300", "portfolio", 300, 130],
+        ["portfolio800", "投资组合 ¥800", "股票市值达到 ¥800", "portfolio", 800, 220],
+        ["portfolio1500", "投资组合 ¥1500", "股票市值达到 ¥1500", "portfolio", 1500, 340],
+        ["stockRank1", "股票第一名", "成为股票市值第一名", "stockRankTop", 1, 360],
+        ["short1", "第一次做空", "建立 1 股做空仓位", "shortShares", 1, 180],
+      ],
+    },
+    {
+      category: "合同交易",
+      tasks: [
+        ["contract1", "第一份合同", "签下 1 份合作合同", "contracts", 1, 150],
+        ["contract2", "合作网络", "签下 2 份合作合同", "contracts", 2, 210],
+        ["contract3", "合同经纪人", "签下 3 份合作合同", "contracts", 3, 290],
+        ["contract5", "商业联盟", "签下 5 份合作合同", "contracts", 5, 450],
+        ["completedContract1", "完成一次合约", "完成 1 份合作合同", "completedContracts", 1, 240],
+        ["completedContract3", "可靠合作方", "完成 3 份合作合同", "completedContracts", 3, 420],
+        ["reputation85", "商业信誉 A", "合同信誉达到 85", "contractReputation", 85, 180],
+        ["reputation95", "商业信誉 S", "合同信誉达到 95", "contractReputation", 95, 340],
+        ["contractNoRisk", "低风险签约", "合同信誉达到 100", "contractReputation", 100, 500],
+        ["contractArchive5", "合同档案", "累计完成/生效 5 份合同", "contracts", 5, 380],
+      ],
+    },
+    {
+      category: "员工团队",
+      tasks: [
+        ["staff1", "第一名员工", "雇佣 1 名员工", "staff", 1, 140],
+        ["staff2", "小团队", "雇佣 2 名员工", "staff", 2, 220],
+        ["staff3", "部门成型", "雇佣 3 名员工", "staff", 3, 320],
+        ["staff4", "公司班底", "雇佣 4 名员工", "staff", 4, 460],
+        ["staffTask1", "分配任务", "有 1 名员工正在执行任务", "activeStaffTasks", 1, 120],
+        ["staffTask2", "双线推进", "有 2 名员工正在执行任务", "activeStaffTasks", 2, 220],
+        ["staffDone1", "员工首功", "员工完成 1 次任务", "staffCompletedTasks", 1, 160],
+        ["staffDone3", "团队产出", "员工完成 3 次任务", "staffCompletedTasks", 3, 280],
+        ["staffDone5", "高效团队", "员工完成 5 次任务", "staffCompletedTasks", 5, 400],
+        ["payrollReady", "工资安全垫", "现金足够支付 2 轮员工工资", "payrollBuffer", 2, 180],
+      ],
+    },
+    {
+      category: "金融风控",
+      tasks: [
+        ["cash1000", "现金垫", "现金达到 ¥1000", "cash", 1000, 60],
+        ["cash2000", "现金储备", "现金达到 ¥2000", "cash", 2000, 180],
+        ["cash3500", "资金池", "现金达到 ¥3500", "cash", 3500, 320],
+        ["worth3000", "资产 ¥3000", "总资产达到 ¥3000", "netWorth", 3000, 160],
+        ["worth6000", "资产 ¥6000", "总资产达到 ¥6000", "netWorth", 6000, 300],
+        ["worth10000", "资产 ¥10000", "总资产达到 ¥10000", "netWorth", 10000, 520],
+        ["credit500", "银行信用", "可用信用达到 ¥500", "credit", 500, 70],
+        ["credit1000", "信用额度", "可用信用达到 ¥1000", "credit", 1000, 100],
+        ["risk60", "风险低于 60", "风险指数不高于 60", "riskMax", 60, 80],
+        ["risk40", "稳健经营", "风险指数不高于 40", "riskMax", 40, 120],
+      ],
+    },
+    {
+      category: "卡片拍卖",
+      tasks: [
+        ["useCard1", "第一次用卡", "使用 1 张手牌", "cardsUsed", 1, 80],
+        ["use3Cards", "卡片玩家", "使用 3 张手牌", "cardsUsed", 3, 100],
+        ["useCard5", "道具专家", "使用 5 张手牌", "cardsUsed", 5, 180],
+        ["useCard8", "卡牌大师", "使用 8 张手牌", "cardsUsed", 8, 300],
+        ["hand2", "手牌储备", "同时持有 2 张手牌", "handCards", 2, 90],
+        ["hand4", "道具仓库", "同时持有 4 张手牌", "handCards", 4, 160],
+        ["auctionWin", "拍卖赢家", "赢下 1 次拍卖", "auctionWins", 1, 140],
+        ["auction2", "竞价老手", "赢下 2 次拍卖", "auctionWins", 2, 220],
+        ["auction5", "拍卖猎手", "赢下 5 次拍卖", "auctionWins", 5, 380],
+        ["auction8", "落槌之王", "赢下 8 次拍卖", "auctionWins", 8, 560],
+      ],
+    },
+    {
+      category: "商业设施",
+      tasks: [
+        ["hotel1", "第一家酒店", "建成 1 家酒店", "hotels", 1, 170],
+        ["hotel3", "旅游集团", "建成 3 家酒店", "hotels", 3, 320],
+        ["bank1", "城市银行", "建成 1 家银行", "banks", 1, 180],
+        ["bank2", "金融网点", "建成 2 家银行", "banks", 2, 300],
+        ["techPark1", "科技园区", "建成 1 个科技园", "techParks", 1, 180],
+        ["techPark2", "创新走廊", "建成 2 个科技园", "techParks", 2, 320],
+        ["headquarter1", "全球总部", "设立 1 个总部", "headquarters", 1, 300],
+        ["routeDividend100", "航线分红", "路线分红达到 ¥100", "routeDividend", 100, 220],
+        ["companyDividend120", "公司现金流", "公司分红达到 ¥120", "companyDividend", 120, 240],
+        ["cityRevenue500", "城市营收 ¥500", "名下城市累计营收达到 ¥500", "cityRevenue", 500, 280],
+      ],
+    },
+    {
+      category: "百项大师",
+      tasks: [
+        ["challenge5", "完成 5 项挑战", "完成 5 项百项挑战", "completedChallenges", 5, 120],
+        ["challenge10", "完成 10 项挑战", "完成 10 项百项挑战", "completedChallenges", 10, 180],
+        ["challenge20", "完成 20 项挑战", "完成 20 项百项挑战", "completedChallenges", 20, 300],
+        ["challenge35", "完成 35 项挑战", "完成 35 项百项挑战", "completedChallenges", 35, 480],
+        ["challenge50", "完成 50 项挑战", "完成 50 项百项挑战", "completedChallenges", 50, 680],
+        ["challenge75", "完成 75 项挑战", "完成 75 项百项挑战", "completedChallenges", 75, 980],
+        ["challenge100", "百项全通", "完成其余 99 项挑战", "completedChallenges", 99, 1600],
+        ["achievement3", "徽章收藏 3", "解锁 3 枚成就徽章", "achievements", 3, 180],
+        ["achievement6", "徽章收藏 6", "解锁 6 枚成就徽章", "achievements", 6, 320],
+        ["goalDone3", "本局目标专家", "完成 3 个本局目标", "completedGoals", 3, 420],
+      ],
+    },
+  ];
+
+  const tasks = groups.flatMap((group) => group.tasks.map(([id, title, detail, metric, target, reward]) => ({
+    id,
+    title,
+    detail,
+    metric,
+    target,
+    reward,
+    category: group.category,
+  })));
+  return tasks.slice(0, 100);
+}
+
+const taskDefinitions = createHundredChallengeTasks();
 
 const achievementDefinitions = {
   firstPurchase: "第一次买地",
@@ -4319,6 +4478,7 @@ function loadGame() {
     saved.cityRegionFilter = ["all", ...new Set(spaces.filter((space) => space.type === "property").map((space) => space.region))].includes(saved.cityRegionFilter) ? saved.cityRegionFilter : "all";
     saved.cityOwnerFilter = ["all", "mine", "rival", "free"].includes(saved.cityOwnerFilter) ? saved.cityOwnerFilter : "all";
     saved.drawerOpen = normalizeDrawerOpen(saved.drawerOpen);
+    saved.drawerOpen["panel:progress"] = true;
     saved.sidePanelMode = SIDE_PANEL_MODES.includes(saved.sidePanelMode) ? saved.sidePanelMode : "deal";
     saved.sidePanelCollapsed = Boolean(saved.sidePanelCollapsed);
     saved.mapZoom = clamp(Number(saved.mapZoom) || 1, 0.75, 1.8);
@@ -4764,7 +4924,7 @@ function sidePanelDrawerDefinitions() {
       label: uiText("sideGoals"),
       detail: uiText("sideGoalsDetail"),
       icon: "trophy",
-      meta: () => uiText("sideGoalsDone", current?.completedTasks?.length || 0),
+      meta: () => uiText("sideGoalsDone", completedChallengeCount(current)),
       panels: () => [progressPanel, savePanel, sharePanel],
     },
     {
@@ -7000,24 +7160,68 @@ function renderDealLedger(showTitle = true) {
   return ledger;
 }
 
+function renderHundredChallengePanel(player) {
+  const panel = document.createElement("article");
+  panel.className = "hundred-challenge-panel";
+  const completed = completedChallengeCount(player);
+  const total = taskDefinitions.length;
+
+  const head = document.createElement("div");
+  head.className = "challenge-panel-head";
+  const title = document.createElement("strong");
+  title.textContent = "百项经营挑战";
+  const count = document.createElement("span");
+  count.textContent = `${completed}/${total}`;
+  head.append(title, count);
+
+  const intro = document.createElement("p");
+  intro.textContent = "买地、升级、股票、合同、员工、融资、卡片和全球地图都会进入这里。完成挑战会直接获得现金奖励。";
+  panel.append(head, intro, createProgressMeter((completed / Math.max(1, total)) * 100));
+
+  const categories = [...new Set(taskDefinitions.map((task) => task.category))];
+  categories.forEach((category, index) => {
+    const tasks = taskDefinitions.filter((task) => task.category === category);
+    const doneCount = tasks.filter((task) => player?.completedTasks?.includes(task.id)).length;
+    const details = document.createElement("details");
+    details.className = "challenge-category";
+    details.open = index === 0 || (doneCount > 0 && doneCount < tasks.length);
+
+    const summary = document.createElement("summary");
+    const label = document.createElement("strong");
+    label.textContent = category;
+    const meta = document.createElement("span");
+    meta.textContent = `${doneCount}/${tasks.length}`;
+    summary.append(label, meta);
+
+    const list = document.createElement("div");
+    list.className = "task-list challenge-list";
+    tasks.forEach((task) => {
+      const done = Boolean(player?.completedTasks?.includes(task.id));
+      const progress = taskProgress(task, player);
+      const item = document.createElement("article");
+      item.className = done ? "task-item task-done" : "task-item";
+      const name = document.createElement("strong");
+      name.textContent = task.title;
+      const detail = document.createElement("span");
+      detail.textContent = done
+        ? `已完成 / 奖励 ${formatMoney(task.reward)}`
+        : `${task.detail} / ${progress.label} / 奖励 ${formatMoney(task.reward)}`;
+      item.append(name, detail, createProgressMeter(progress.percent));
+      list.appendChild(item);
+    });
+
+    details.append(summary, list);
+    panel.appendChild(details);
+  });
+
+  return panel;
+}
+
 function renderProgress() {
 	  progressPanel.innerHTML = "";
 	  const current = currentPlayer();
 	  const drawerChildren = [renderVictoryProgressCard(current), renderTurnSummaryCard(current), renderGameGoals(current), renderRouteMission(current), renderHiddenMissionCard(current), renderTurnGoalCard(current)];
-
-  const tasks = document.createElement("div");
-  tasks.className = "task-list";
-  taskDefinitions.forEach((task) => {
-    const done = Boolean(current?.completedTasks?.includes(task.id));
-    const item = document.createElement("article");
-    item.className = done ? "task-item task-done" : "task-item";
-    const name = document.createElement("strong");
-    name.textContent = task.title;
-    const detail = document.createElement("span");
-    detail.textContent = done ? `已完成 / 奖励 ${formatMoney(task.reward)}` : task.detail;
-    item.append(name, detail);
-    tasks.appendChild(item);
-  });
+  const tasks = renderHundredChallengePanel(current);
 
   const achievements = loadAchievements();
   const achievementRow = document.createElement("div");
@@ -7052,7 +7256,7 @@ function renderProgress() {
   drawerChildren.push(tasks, renderLatestQuarterlyReport(), achievementRow, stats, leaderboard.children.length ? leaderboard : emptyNote("暂无历史排行。"));
   appendPanelDrawer(progressPanel, "panel:progress", "任务 / 成就", drawerChildren, {
     icon: "trophy",
-    meta: `${current?.completedTasks?.length || 0}/${taskDefinitions.length}`,
+    meta: `${completedChallengeCount(current)}/${taskDefinitions.length}`,
   });
 }
 
@@ -13326,9 +13530,11 @@ function ensureFunds(player, amount, reason) {
 
 function checkTasks(player) {
   if (!player || player.bankrupt) return;
-  taskDefinitions.forEach((task) => {
-    if (player.completedTasks.includes(task.id)) return;
-    if (!isTaskComplete(player, task.id)) return;
+  const readyTasks = taskDefinitions.filter((task) => {
+    if (player.completedTasks.includes(task.id)) return false;
+    return isTaskComplete(player, task.id);
+  });
+  readyTasks.forEach((task) => {
     player.completedTasks.push(task.id);
     player.cash += task.reward;
     logEvent(`${player.name} 完成任务「${task.title}」，获得 ${task.reward} 现金。`);
@@ -13339,16 +13545,154 @@ function checkTasks(player) {
   completeHiddenMissions(player);
 }
 
-function isTaskComplete(player, taskId) {
-  if (taskId === "buy3") return ownedPropertyIndexes(player.id).length >= 3;
-  if (taskId === "firstSet") {
-    return spaces.some((space) => space.type === "property" && ownsContinentSet(player.id, space.group));
+function completedChallengeCount(player, excludeId = "") {
+  if (!player) return 0;
+  const completed = new Set(Array.isArray(player.completedTasks) ? player.completedTasks : []);
+  if (excludeId) completed.delete(excludeId);
+  return taskDefinitions.filter((task) => completed.has(task.id)).length;
+}
+
+function ownedCityRevenueTotal(player) {
+  if (!player) return 0;
+  return ownedPropertyIndexes(player.id).reduce((total, index) => total + (Number(state.cityRevenue?.[index]) || 0), 0);
+}
+
+function activeStaffTaskCount(player) {
+  return normalizeStaffRoster(player?.staff).filter((staff) => staff.taskId).length;
+}
+
+function completedStaffTaskCount(player) {
+  return normalizeStaffRoster(player?.staff).reduce((total, staff) => total + (Number(staff.completedTasks) || 0), 0);
+}
+
+function shortShareCount(player) {
+  return Object.values(financeFor(player).shortPositions || {}).reduce((total, position) => total + (Number(position.shares) || 0), 0);
+}
+
+function adjacentOwnedPairCount(player) {
+  if (!player) return 0;
+  return ownedPropertyIndexes(player.id).filter((index) => state.owners[(index + 1) % spaces.length] === player.id).length;
+}
+
+function completedGoalCount(player) {
+  if (!player) return 0;
+  return normalizeGoals(state.goals).filter((goal) => Array.isArray(goal.completedBy) && goal.completedBy.includes(player.id)).length;
+}
+
+function taskMetricValue(player, task) {
+  if (!player || !task) return 0;
+  const owned = ownedPropertyIndexes(player.id);
+  switch (task.metric) {
+    case "properties":
+      return owned.length;
+    case "setCount":
+      return continentSetCount(player.id);
+    case "upgrades":
+      return player.upgradeCount || 0;
+    case "maxLevelCities":
+      return owned.filter((index) => (state.levels[index] || 0) >= MAX_LEVEL).length;
+    case "companies":
+      return ownedCompanyCount(player);
+    case "ecoCities":
+      return owned.filter((index) => (state.ecoLevels[index] || 0) > 0).length;
+    case "regions":
+      return new Set(player.visitedRegions || []).size;
+    case "airportCities":
+      return owned.filter((index) => spaces[index]?.airport || spaces[index]?.specialty === "transit").length;
+    case "portCities":
+      return owned.filter((index) => spaces[index]?.coastal).length;
+    case "energyCities":
+      return owned.filter((index) => spaces[index]?.energy).length;
+    case "adjacentOwned":
+      return adjacentOwnedPairCount(player);
+    case "totalLocations":
+      return spaces.length;
+    case "stocks":
+      return totalStockShares(player);
+    case "portfolio":
+      return portfolioMarketValue(player);
+    case "stockRankTop": {
+      const leader = [...activePlayers()].sort((a, b) => portfolioMarketValue(b) - portfolioMarketValue(a))[0];
+      return leader?.id === player.id && portfolioMarketValue(player) > 0 ? 1 : 0;
+    }
+    case "shortShares":
+      return shortShareCount(player);
+    case "contracts":
+      return coopContractsForPlayer(player).filter((contract) => ["active", "completed"].includes(contract.status)).length;
+    case "completedContracts":
+      return coopContractsForPlayer(player).filter((contract) => contract.status === "completed").length;
+    case "contractReputation":
+      return player.contractReputation || 0;
+    case "staff":
+      return normalizeStaffRoster(player.staff).length;
+    case "activeStaffTasks":
+      return activeStaffTaskCount(player);
+    case "staffCompletedTasks":
+      return completedStaffTaskCount(player);
+    case "payrollBuffer": {
+      const wage = staffWageTotal(player);
+      return wage > 0 ? Math.floor(player.cash / Math.max(1, wage)) : 0;
+    }
+    case "cash":
+      return player.cash || 0;
+    case "netWorth":
+      return netWorth(player);
+    case "credit":
+      return availableCredit(player);
+    case "riskMax":
+      return riskIndex(player).score;
+    case "cardsUsed":
+      return player.cardsUsed || 0;
+    case "handCards":
+      return player.cards?.length || 0;
+    case "auctionWins":
+      return player.auctionWins || 0;
+    case "hotels":
+      return ownedCompanyCount(player, "hotel");
+    case "banks":
+      return ownedCompanyCount(player, "bank");
+    case "techParks":
+      return ownedCompanyCount(player, "techPark");
+    case "headquarters":
+      return state.headquarters?.[player.id] !== undefined ? 1 : 0;
+    case "routeDividend":
+      return routeDividendFor(player);
+    case "companyDividend":
+      return companyDividendFor(player);
+    case "cityRevenue":
+      return ownedCityRevenueTotal(player);
+    case "completedChallenges":
+      return completedChallengeCount(player, task.id);
+    case "achievements":
+      return Object.keys(loadAchievements()).length;
+    case "completedGoals":
+      return completedGoalCount(player);
+    default:
+      return 0;
   }
-  if (taskId === "worldTour") return new Set(player.visitedRegions || []).size >= 5;
-  if (taskId === "upgrade2") return (player.upgradeCount || 0) >= 2;
-  if (taskId === "use3Cards") return player.cardsUsed >= 3;
-  if (taskId === "auctionWin") return ownedPropertyIndexes(player.id).some((index) => state.log.some((entry) => entry.text.includes("拍下") && entry.text.includes(spaces[index].name)));
-  return false;
+}
+
+function taskProgress(task, player) {
+  const value = taskMetricValue(player, task);
+  const target = Math.max(1, Number(task?.target) || 1);
+  if (task?.metric === "riskMax") {
+    const percent = value <= target ? 100 : clamp(((100 - value) / Math.max(1, 100 - target)) * 100, 0, 99);
+    return { value, target, percent, label: `风险 ${Math.round(value)} / 目标 ≤${target}` };
+  }
+  const percent = clamp((value / target) * 100, 0, 100);
+  const moneyMetrics = new Set(["cash", "netWorth", "credit", "portfolio", "routeDividend", "companyDividend", "cityRevenue"]);
+  const label = moneyMetrics.has(task?.metric)
+    ? `${formatMoney(value)} / ${formatMoney(target)}`
+    : `${Math.min(Math.round(value), target)} / ${target}`;
+  return { value, target, percent, label };
+}
+
+function isTaskComplete(player, taskId) {
+  const task = taskDefinitions.find((item) => item.id === taskId);
+  if (!task) return false;
+  const progress = taskProgress(task, player);
+  if (task.metric === "riskMax") return progress.value <= progress.target;
+  return progress.value >= progress.target;
 }
 
 function unlockAchievement(id) {

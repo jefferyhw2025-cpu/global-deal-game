@@ -4879,6 +4879,7 @@ html[lang="es"] .action-bar button.is-next-action::after {
 .goal-panel,
 .route-mission,
 .hidden-mission-card,
+.hundred-challenge-panel,
 .quarterly-report,
 .recommendation-card,
 .trade-negotiation,
@@ -4902,6 +4903,79 @@ html[lang="es"] .action-bar button.is-next-action::after {
 
 .goal-panel {
   margin-bottom: 8px;
+}
+
+.hundred-challenge-panel {
+  border-color: rgba(18, 138, 156, 0.22);
+  background:
+    linear-gradient(135deg, rgba(232, 248, 250, 0.92), rgba(255, 255, 255, 0.94));
+}
+
+.challenge-panel-head,
+.challenge-category summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.challenge-panel-head strong {
+  color: var(--charcoal);
+  font-size: 0.86rem;
+  font-weight: 950;
+}
+
+.challenge-panel-head span,
+.challenge-category summary span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--teal);
+  font-size: 0.62rem;
+  font-weight: 950;
+  padding: 4px 7px;
+}
+
+.hundred-challenge-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 820;
+  line-height: 1.34;
+}
+
+.challenge-category {
+  min-width: 0;
+  border: 1px solid rgba(34, 48, 66, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  overflow: hidden;
+}
+
+.challenge-category summary {
+  min-height: 36px;
+  padding: 7px 9px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.challenge-category summary::-webkit-details-marker {
+  display: none;
+}
+
+.challenge-category summary strong {
+  min-width: 0;
+  color: var(--charcoal);
+  font-size: 0.72rem;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.challenge-list {
+  padding: 0 8px 8px;
 }
 
 .goal-item {
