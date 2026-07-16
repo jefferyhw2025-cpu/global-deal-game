@@ -4635,6 +4635,7 @@ function renderBoard() {
 
     const tokenStack = document.createElement("div");
     tokenStack.className = "token-stack";
+    tokenStack.dataset.count = tokens.length > 3 ? String(tokens.length) : "";
     tokens.forEach((player) => {
       const token = document.createElement("span");
       token.className = state.phase === "moving" && currentPlayer()?.id === player.id ? "player-token is-moving-token" : "player-token";
